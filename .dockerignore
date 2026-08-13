@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+data
+.git
+.gitignore
+.env
+.env.local
+*.md
+Dockerfile
+docker-compose.yml
+somos-entradas.html

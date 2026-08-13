@@ -1,0 +1,557 @@
+@import 'tailwindcss';
+
+/* ===========================================================================
+   SOMOS — sistema de diseno
+   Neon electrico: negro absoluto, cian y magenta, violeta de puente.
+   =========================================================================== */
+
+@theme {
+  /* --- Superficies --- */
+  --color-void: #05060a;
+  --color-void-2: #090b12;
+  --color-surface: #0e111b;
+  --color-surface-2: #151a28;
+  --color-line: rgba(234, 240, 255, 0.09);
+  --color-line-fuerte: rgba(234, 240, 255, 0.18);
+
+  /* --- Texto --- */
+  --color-ink: #eaf0ff;
+  --color-dim: #808da8;
+  --color-faint: #4c5670;
+
+  /* --- Acentos --- */
+  --color-cyan: #00f0ff;
+  --color-magenta: #ff2e9a;
+  --color-violeta: #7b5cff;
+  --color-lima: #b6ff3c;
+
+  /* --- Semanticos --- */
+  --color-ok: #35f0a0;
+  --color-alerta: #ffc53d;
+  --color-error: #ff4d6d;
+
+  /* --- Tipografia --- */
+  --font-display: var(--fuente-display), 'Unbounded', system-ui, sans-serif;
+  --font-sans: var(--fuente-sans), 'Inter', system-ui, sans-serif;
+  --font-mono: var(--fuente-mono), 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* --- Radios --- */
+  --radius-card: 16px;
+  --radius-campo: 10px;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+:root {
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Halos de color detras de todo el sitio. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 12% -10%, rgba(0, 240, 255, 0.13), transparent 60%),
+    radial-gradient(50rem 38rem at 95% 8%, rgba(255, 46, 154, 0.12), transparent 62%),
+    radial-gradient(70rem 50rem at 50% 110%, rgba(123, 92, 255, 0.14), transparent 65%);
+}
+
+/* Grano sutil: le saca el aspecto plano al negro. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-magenta);
+  color: var(--color-void);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-void);
+}
+::-webkit-scrollbar-thumb {
+  background: #232a3d;
+  border-radius: 99px;
+  border: 2px solid var(--color-void);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #34405c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Tipografia de marca
+   -------------------------------------------------------------------------- */
+/* Unbounded es ancha y ya trae mucha presencia: pide menos peso, algo menos
+   de tracking negativo y mas aire entre lineas que una grotesca normal. */
+.titulo-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+
+.dato {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Texto con gradiente cian → violeta → magenta. */
+.texto-neon {
+  background: linear-gradient(100deg, #00f0ff 0%, #7b5cff 46%, #ff2e9a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brillo-cyan {
+  text-shadow:
+    0 0 18px rgba(0, 240, 255, 0.55),
+    0 0 60px rgba(0, 240, 255, 0.25);
+}
+
+.brillo-magenta {
+  text-shadow:
+    0 0 18px rgba(255, 46, 154, 0.55),
+    0 0 60px rgba(255, 46, 154, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Superficies
+   -------------------------------------------------------------------------- */
+.tarjeta {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(6px);
+}
+
+.tarjeta-solida {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+/* Borde con gradiente, para lo que tiene que destacar. */
+.borde-neon {
+  position: relative;
+  border-radius: var(--radius-card);
+}
+.borde-neon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(0, 240, 255, 0.7), rgba(123, 92, 255, 0.35), rgba(255, 46, 154, 0.7));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Linea divisoria que se desvanece en los extremos. */
+.regla {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--color-line-fuerte) 22%, var(--color-line-fuerte) 78%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Botones
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1;
+  padding: 0.95rem 1.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 0.16s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-primario {
+  color: #05060a;
+  border: 0;
+  background: linear-gradient(100deg, #00f0ff, #7b5cff 52%, #ff2e9a);
+  box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.25);
+}
+.btn-primario:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(0, 240, 255, 0.4),
+    0 12px 40px -8px rgba(123, 92, 255, 0.75);
+}
+
+.btn-borde {
+  color: var(--color-ink);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-line-fuerte);
+}
+.btn-borde:hover:not(:disabled) {
+  border-color: rgba(0, 240, 255, 0.55);
+  color: var(--color-cyan);
+  background: rgba(0, 240, 255, 0.06);
+}
+
+.btn-fantasma {
+  color: var(--color-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.6rem 0.9rem;
+}
+.btn-fantasma:hover:not(:disabled) {
+  color: var(--color-ink);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-peligro {
+  color: var(--color-error);
+  background: rgba(255, 77, 109, 0.08);
+  border: 1px solid rgba(255, 77, 109, 0.35);
+}
+.btn-peligro:hover:not(:disabled) {
+  background: rgba(255, 77, 109, 0.16);
+}
+
+.btn-ok {
+  color: var(--color-void);
+  background: var(--color-ok);
+  border: 0;
+}
+.btn-ok:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px -10px rgba(53, 240, 160, 0.8);
+}
+
+.btn-sm {
+  padding: 0.55rem 1rem;
+  font-size: 0.8125rem;
+}
+
+/* --------------------------------------------------------------------------
+   Formularios
+   -------------------------------------------------------------------------- */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.campo-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+
+.campo-input,
+.campo-select,
+.campo-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-campo);
+  padding: 0.8rem 0.95rem;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.campo-textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+.campo-input::placeholder,
+.campo-textarea::placeholder {
+  color: var(--color-faint);
+}
+
+.campo-input:focus,
+.campo-select:focus,
+.campo-textarea:focus {
+  outline: none;
+  border-color: rgba(0, 240, 255, 0.6);
+  background: rgba(0, 240, 255, 0.04);
+  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.12);
+}
+
+.campo-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23808da8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  padding-right: 2.4rem;
+}
+
+.campo-select option {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.campo-error {
+  font-size: 0.8125rem;
+  color: var(--color-error);
+}
+
+.campo-ayuda {
+  font-size: 0.8125rem;
+  color: var(--color-dim);
+}
+
+/* --------------------------------------------------------------------------
+   Insignias de estado
+   -------------------------------------------------------------------------- */
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.insignia-pendiente {
+  color: var(--color-alerta);
+  background: rgba(255, 197, 61, 0.1);
+  border-color: rgba(255, 197, 61, 0.3);
+}
+.insignia-ok {
+  color: var(--color-ok);
+  background: rgba(53, 240, 160, 0.1);
+  border-color: rgba(53, 240, 160, 0.3);
+}
+.insignia-error {
+  color: var(--color-error);
+  background: rgba(255, 77, 109, 0.1);
+  border-color: rgba(255, 77, 109, 0.3);
+}
+.insignia-neutral {
+  color: var(--color-dim);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-line);
+}
+.insignia-cyan {
+  color: var(--color-cyan);
+  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Ticket: muescas laterales y linea perforada
+   -------------------------------------------------------------------------- */
+.perforado {
+  position: relative;
+  border-top: 1px dashed var(--color-line-fuerte);
+}
+.perforado::before,
+.perforado::after {
+  content: '';
+  position: absolute;
+  top: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-void);
+  border: 1px solid var(--color-line);
+}
+.perforado::before {
+  left: -12px;
+}
+.perforado::after {
+  right: -12px;
+}
+
+/* --------------------------------------------------------------------------
+   Animaciones
+   -------------------------------------------------------------------------- */
+@keyframes pulso-onda {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes barrido {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.animar-aparecer {
+  animation: aparecer 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.girando {
+  animation: girar 0.8s linear infinite;
+}
+
+/* Barrido del laser en el escaner de puerta. */
+.laser-escaner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+  box-shadow: 0 0 14px var(--color-cyan);
+  animation: barrido 2.2s ease-in-out infinite alternate;
+}
+
+/* --------------------------------------------------------------------------
+   Utilidades varias
+   -------------------------------------------------------------------------- */
+.contenedor {
+  width: 100%;
+  max-width: 74rem;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+.contenedor-angosto {
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+.barra-progreso {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.barra-progreso > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00f0ff, #7b5cff 55%, #ff2e9a);
+  box-shadow: 0 0 18px rgba(123, 92, 255, 0.6);
+  transition: width 0.8s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Impresion de la entrada: fondo blanco y sin adornos. */
+@media print {
+  body::before,
+  body::after {
+    display: none;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .no-imprimir {
+    display: none !important;
+  }
+}

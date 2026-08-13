@@ -1,0 +1,33 @@
+# dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# next
+.next/
+out/
+build/
+next-env.d.ts
+
+# entorno — nunca versionar secretos
+.env
+.env.local
+.env*.local
+
+# datos locales (comprobantes de transferencia subidos por los asistentes)
+data/
+
+# llaves de service accounts
+*.json.key
+gcp-deployer-key.json
+
+# sistema
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# editor
+.vscode/
+.idea/
+*.tsbuildinfo

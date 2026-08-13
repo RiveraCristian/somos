@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# SOMOS — un solo servicio.
+# PostgreSQL corre FUERA de Docker (nativo en el host o en un servidor propio)
+# y se consume a traves de DATABASE_URL. No se declara aqui a proposito.
+# ---------------------------------------------------------------------------
+services:
+  somos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: somos:latest
+    container_name: somos
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      UPLOADS_DIR: /app/data/comprobantes
+    volumes:
+      # Los comprobantes de transferencia sobreviven a los redeploys.
+      - somos_comprobantes:/app/data/comprobantes
+    extra_hosts:
+      # Permite que el contenedor alcance el PostgreSQL del host en Linux.
+      # En Docker Desktop (Windows/Mac) host.docker.internal ya existe.
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/api/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  somos_comprobantes:

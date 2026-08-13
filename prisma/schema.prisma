@@ -1,0 +1,383 @@
+// ---------------------------------------------------------------------------
+// SOMOS — esquema de base de datos
+//
+// Convenciones (CLAUDE.md seccion 3 y 4):
+//   - Identificadores fisicos en snake_case con formato  [entidad]_[atributo].
+//   - Prisma usa camelCase y mapea SIEMPRE con @map / @@map.
+//   - Toda tabla de negocio lleva created_by / created_at / modified_by / modified_at.
+//   - Entidades criticas (eventos, asistentes, aportes, entradas) llevan ademas
+//     is_deleted / deleted_at / deleted_by. Nunca se hace DELETE fisico sobre ellas.
+//   - El trigger set_modified_at() de cada tabla vive en la migracion 0001_init.
+//
+// Nota sobre created_by: el sitio es publico y los asistentes se registran solos,
+// asi que no siempre hay un usuario autenticado detras de un INSERT. Para no
+// romper el NOT NULL + FK exigido por la guia, el seed crea el usuario id=1
+// "Sistema (auto-registro publico)", inactivo para login, que queda como autor de
+// todo lo que se origina en el sitio publico.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Usuarios (staff: administracion y puerta)
+// ---------------------------------------------------------------------------
+model Usuario {
+  usuarioId                 Int       @id @default(autoincrement()) @map("usuario_id")
+  usuarioCorreo             String    @unique @map("usuario_correo") @db.VarChar(255)
+  usuarioNombre             String    @map("usuario_nombre") @db.VarChar(255)
+  /// Nullable a proposito: con Google SSO (Fase 2) no habra password local.
+  usuarioPassword           String?   @map("usuario_password") @db.VarChar(255)
+  usuarioDepartamento       String?   @map("usuario_departamento") @db.VarChar(100)
+  /// Admin | DataOwner | Steward | Analyst | Viewer
+  usuarioRol                String    @map("usuario_rol") @db.VarChar(50)
+  usuarioActivo             Boolean   @default(true) @map("usuario_activo")
+  /// Preparacion para Google SSO: local | google
+  usuarioProveedorAuth      String    @default("local") @map("usuario_proveedor_auth") @db.VarChar(50)
+  usuarioProveedorId        String?   @map("usuario_proveedor_id") @db.VarChar(255)
+  usuarioFechaCreacion      DateTime  @default(now()) @map("usuario_fecha_creacion")
+  usuarioFechaDesactivacion DateTime? @map("usuario_fecha_desactivacion")
+
+  sesiones             Sesion[]
+  escaneos             Escaneo[]
+  eventosCreados       Evento[]              @relation("EventoCreador")
+  eventosModificados   Evento[]              @relation("EventoModificador")
+  eventosEliminados    Evento[]              @relation("EventoEliminador")
+  tiposCreados         TipoEntrada[]         @relation("TipoEntradaCreador")
+  tiposModificados     TipoEntrada[]         @relation("TipoEntradaModificador")
+  artistasCreados      Artista[]             @relation("ArtistaCreador")
+  artistasModificados  Artista[]             @relation("ArtistaModificador")
+  preguntasCreadas     PreguntaFrecuente[]   @relation("PreguntaCreador")
+  preguntasModificadas PreguntaFrecuente[]   @relation("PreguntaModificador")
+  asistentesCreados    Asistente[]           @relation("AsistenteCreador")
+  asistentesModificados Asistente[]          @relation("AsistenteModificador")
+  asistentesEliminados Asistente[]           @relation("AsistenteEliminador")
+  pagosCreados         Pago[]                @relation("PagoCreador")
+  pagosModificados     Pago[]                @relation("PagoModificador")
+  pagosEliminados      Pago[]                @relation("PagoEliminador")
+  pagosRevisados       Pago[]                @relation("PagoRevisor")
+  entradasCreadas      Entrada[]             @relation("EntradaCreador")
+  entradasModificadas  Entrada[]             @relation("EntradaModificador")
+  entradasEliminadas   Entrada[]             @relation("EntradaEliminador")
+  entradasQuemadas     Entrada[]             @relation("EntradaQuemadaPor")
+
+  @@map("usuarios")
+}
+
+// ---------------------------------------------------------------------------
+// Sesiones (refresh tokens del panel). Tabla tecnica: sin campos de auditoria.
+// ---------------------------------------------------------------------------
+model Sesion {
+  sesionId            Int      @id @default(autoincrement()) @map("sesion_id")
+  sesionUsuarioId     Int      @map("sesion_usuario_id")
+  sesionTokenHash     String   @unique @map("sesion_token_hash") @db.VarChar(255)
+  sesionExpiraEn      DateTime @map("sesion_expira_en")
+  sesionRevocada      Boolean  @default(false) @map("sesion_revocada")
+  sesionIp            String?  @map("sesion_ip") @db.VarChar(45)
+  sesionUserAgent     String?  @map("sesion_user_agent") @db.VarChar(300)
+  sesionFechaCreacion DateTime @default(now()) @map("sesion_fecha_creacion")
+
+  usuario Usuario @relation(fields: [sesionUsuarioId], references: [usuarioId])
+
+  @@index([sesionUsuarioId])
+  @@map("sesiones")
+}
+
+// ---------------------------------------------------------------------------
+// Evento (entidad critica: soft delete)
+// ---------------------------------------------------------------------------
+model Evento {
+  eventoId           Int       @id @default(autoincrement()) @map("evento_id")
+  eventoSlug         String    @unique @map("evento_slug") @db.VarChar(120)
+  eventoNombre       String    @map("evento_nombre") @db.VarChar(200)
+  eventoLema         String?   @map("evento_lema") @db.VarChar(300)
+  eventoDescripcion  String?   @map("evento_descripcion")
+  eventoFechaInicio  DateTime? @map("evento_fecha_inicio")
+  eventoFechaTermino DateTime? @map("evento_fecha_termino")
+  eventoVenue        String?   @map("evento_venue") @db.VarChar(200)
+  eventoDireccion    String?   @map("evento_direccion") @db.VarChar(300)
+  eventoCiudad       String    @map("evento_ciudad") @db.VarChar(120)
+  eventoRegion       String?   @map("evento_region") @db.VarChar(120)
+  eventoMapaUrl      String?   @map("evento_mapa_url") @db.VarChar(500)
+  eventoCapacidad    Int?      @map("evento_capacidad")
+  /// borrador | publicado | cerrado | finalizado
+  eventoEstado       String    @default("borrador") @map("evento_estado") @db.VarChar(30)
+  eventoInstagram    String?   @map("evento_instagram") @db.VarChar(120)
+  eventoWhatsapp     String?   @map("evento_whatsapp") @db.VarChar(60)
+
+  // --- Datos para recibir los aportes por Tenpo / transferencia -------------
+  eventoTenpoNombre     String? @map("evento_tenpo_nombre") @db.VarChar(200)
+  eventoTenpoRut        String? @map("evento_tenpo_rut") @db.VarChar(20)
+  eventoTenpoCorreo     String? @map("evento_tenpo_correo") @db.VarChar(255)
+  eventoTenpoBanco      String? @map("evento_tenpo_banco") @db.VarChar(120)
+  eventoTenpoTipoCuenta String? @map("evento_tenpo_tipo_cuenta") @db.VarChar(60)
+  eventoTenpoCuenta     String? @map("evento_tenpo_cuenta") @db.VarChar(50)
+  /// Imagen del QR de cobro que genera la app de Tenpo (ruta en /public o URL).
+  eventoTenpoQrUrl      String? @map("evento_tenpo_qr_url") @db.VarChar(500)
+
+  createdBy  Int       @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  modifiedBy Int?      @map("modified_by")
+  modifiedAt DateTime  @default(now()) @map("modified_at")
+  isDeleted  Boolean   @default(false) @map("is_deleted")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  Int?      @map("deleted_by")
+
+  creador     Usuario @relation("EventoCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("EventoModificador", fields: [modifiedBy], references: [usuarioId])
+  eliminador  Usuario? @relation("EventoEliminador", fields: [deletedBy], references: [usuarioId])
+
+  tiposEntrada TipoEntrada[]
+  artistas     Artista[]
+  preguntas    PreguntaFrecuente[]
+  asistentes   Asistente[]
+
+  @@map("eventos")
+}
+
+// ---------------------------------------------------------------------------
+// Tipos de entrada (General / VIP / Preventa ...)
+// ---------------------------------------------------------------------------
+model TipoEntrada {
+  tipoEntradaId          Int     @id @default(autoincrement()) @map("tipo_entrada_id")
+  tipoEntradaEventoId    Int     @map("tipo_entrada_evento_id")
+  tipoEntradaNombre      String  @map("tipo_entrada_nombre") @db.VarChar(80)
+  tipoEntradaSlug        String  @map("tipo_entrada_slug") @db.VarChar(80)
+  tipoEntradaDescripcion String? @map("tipo_entrada_descripcion") @db.VarChar(300)
+  /// Aporte sugerido en pesos. El asistente puede aportar mas.
+  tipoEntradaPrecio      Int     @map("tipo_entrada_precio")
+  /// null = sin tope de cupo
+  tipoEntradaCupo        Int?    @map("tipo_entrada_cupo")
+  tipoEntradaOrden       Int     @default(0) @map("tipo_entrada_orden")
+  tipoEntradaActivo      Boolean @default(true) @map("tipo_entrada_activo")
+  /// Color de acento del sistema de diseno: cyan | magenta | violeta | lima
+  tipoEntradaColor       String  @default("cyan") @map("tipo_entrada_color") @db.VarChar(20)
+
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedBy Int?     @map("modified_by")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  evento      Evento   @relation(fields: [tipoEntradaEventoId], references: [eventoId])
+  creador     Usuario  @relation("TipoEntradaCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("TipoEntradaModificador", fields: [modifiedBy], references: [usuarioId])
+
+  asistentes Asistente[]
+  entradas   Entrada[]
+
+  @@unique([tipoEntradaEventoId, tipoEntradaSlug])
+  @@index([tipoEntradaEventoId])
+  @@map("tipos_entrada")
+}
+
+// ---------------------------------------------------------------------------
+// Line-up
+// ---------------------------------------------------------------------------
+model Artista {
+  artistaId         Int       @id @default(autoincrement()) @map("artista_id")
+  artistaEventoId   Int       @map("artista_evento_id")
+  artistaNombre     String    @map("artista_nombre") @db.VarChar(120)
+  artistaGenero     String?   @map("artista_genero") @db.VarChar(80)
+  artistaDescripcion String?  @map("artista_descripcion") @db.VarChar(400)
+  artistaHoraInicio DateTime? @map("artista_hora_inicio")
+  artistaHoraTermino DateTime? @map("artista_hora_termino")
+  artistaInstagram  String?   @map("artista_instagram") @db.VarChar(120)
+  artistaImagenUrl  String?   @map("artista_imagen_url") @db.VarChar(500)
+  artistaOrden      Int       @default(0) @map("artista_orden")
+  artistaDestacado  Boolean   @default(false) @map("artista_destacado")
+  artistaActivo     Boolean   @default(true) @map("artista_activo")
+
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedBy Int?     @map("modified_by")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  evento      Evento   @relation(fields: [artistaEventoId], references: [eventoId])
+  creador     Usuario  @relation("ArtistaCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("ArtistaModificador", fields: [modifiedBy], references: [usuarioId])
+
+  @@index([artistaEventoId])
+  @@map("artistas")
+}
+
+// ---------------------------------------------------------------------------
+// Preguntas frecuentes
+// ---------------------------------------------------------------------------
+model PreguntaFrecuente {
+  preguntaId        Int     @id @default(autoincrement()) @map("pregunta_id")
+  preguntaEventoId  Int     @map("pregunta_evento_id")
+  preguntaTexto     String  @map("pregunta_texto") @db.VarChar(300)
+  preguntaRespuesta String  @map("pregunta_respuesta")
+  preguntaOrden     Int     @default(0) @map("pregunta_orden")
+  preguntaActiva    Boolean @default(true) @map("pregunta_activa")
+
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedBy Int?     @map("modified_by")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  evento      Evento   @relation(fields: [preguntaEventoId], references: [eventoId])
+  creador     Usuario  @relation("PreguntaCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("PreguntaModificador", fields: [modifiedBy], references: [usuarioId])
+
+  @@index([preguntaEventoId])
+  @@map("preguntas_frecuentes")
+}
+
+// ---------------------------------------------------------------------------
+// Asistente (entidad critica: soft delete)
+// ---------------------------------------------------------------------------
+model Asistente {
+  asistenteId            Int     @id @default(autoincrement()) @map("asistente_id")
+  asistenteEventoId      Int     @map("asistente_evento_id")
+  asistenteTipoEntradaId Int     @map("asistente_tipo_entrada_id")
+  asistenteNombre        String  @map("asistente_nombre") @db.VarChar(200)
+  asistenteCorreo        String  @map("asistente_correo") @db.VarChar(255)
+  asistenteTelefono      String? @map("asistente_telefono") @db.VarChar(30)
+  asistenteInstagram     String? @map("asistente_instagram") @db.VarChar(80)
+  asistenteMensaje       String? @map("asistente_mensaje") @db.VarChar(500)
+  /// Token secreto del link privado de seguimiento: /mi-aporte/<token>
+  asistenteToken         String  @unique @map("asistente_token") @db.VarChar(64)
+  /// pendiente | confirmado | anulado
+  asistenteEstado        String  @default("pendiente") @map("asistente_estado") @db.VarChar(30)
+  /// Suma denormalizada de los pagos confirmados, para listados rapidos.
+  asistenteMontoPagado   Int     @default(0) @map("asistente_monto_pagado")
+
+  createdBy  Int       @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  modifiedBy Int?      @map("modified_by")
+  modifiedAt DateTime  @default(now()) @map("modified_at")
+  isDeleted  Boolean   @default(false) @map("is_deleted")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  Int?      @map("deleted_by")
+
+  evento      Evento      @relation(fields: [asistenteEventoId], references: [eventoId])
+  tipoEntrada TipoEntrada @relation(fields: [asistenteTipoEntradaId], references: [tipoEntradaId])
+  creador     Usuario     @relation("AsistenteCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario?    @relation("AsistenteModificador", fields: [modifiedBy], references: [usuarioId])
+  eliminador  Usuario?    @relation("AsistenteEliminador", fields: [deletedBy], references: [usuarioId])
+
+  pagos   Pago[]
+  entrada Entrada?
+
+  @@unique([asistenteEventoId, asistenteCorreo])
+  @@index([asistenteEventoId])
+  @@index([asistenteEstado])
+  @@map("asistentes")
+}
+
+// ---------------------------------------------------------------------------
+// Pago de la entrada (entidad critica: soft delete)
+//
+// Es una fila por transferencia declarada. Se permite mas de una por asistente
+// porque alguien puede pagar en dos veces o corregir un pago rechazado.
+// ---------------------------------------------------------------------------
+model Pago {
+  pagoId          Int    @id @default(autoincrement()) @map("pago_id")
+  pagoAsistenteId Int    @map("pago_asistente_id")
+  pagoMonto       Int    @map("pago_monto")
+  /// tenpo | transferencia | efectivo | otro
+  pagoMetodo      String @default("tenpo") @map("pago_metodo") @db.VarChar(30)
+  /// pendiente | confirmado | rechazado
+  pagoEstado      String @default("pendiente") @map("pago_estado") @db.VarChar(30)
+
+  /// Nombre del archivo guardado en UPLOADS_DIR (no es la ruta absoluta).
+  pagoComprobanteArchivo String? @map("pago_comprobante_archivo") @db.VarChar(300)
+  pagoComprobanteNombre  String? @map("pago_comprobante_nombre") @db.VarChar(300)
+  pagoComprobanteMime    String? @map("pago_comprobante_mime") @db.VarChar(120)
+  pagoComprobanteTamano  Int?    @map("pago_comprobante_tamano")
+
+  pagoReferencia     String?   @map("pago_referencia") @db.VarChar(120)
+  pagoMensaje        String?   @map("pago_mensaje") @db.VarChar(500)
+  pagoFechaDeclarado DateTime  @default(now()) @map("pago_fecha_declarado")
+  pagoFechaRevisado  DateTime? @map("pago_fecha_revisado")
+  pagoRevisadoPor    Int?      @map("pago_revisado_por")
+  pagoMotivoRechazo  String?   @map("pago_motivo_rechazo") @db.VarChar(300)
+
+  createdBy  Int       @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  modifiedBy Int?      @map("modified_by")
+  modifiedAt DateTime  @default(now()) @map("modified_at")
+  isDeleted  Boolean   @default(false) @map("is_deleted")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  Int?      @map("deleted_by")
+
+  asistente   Asistente @relation(fields: [pagoAsistenteId], references: [asistenteId])
+  revisor     Usuario?  @relation("PagoRevisor", fields: [pagoRevisadoPor], references: [usuarioId])
+  creador     Usuario   @relation("PagoCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario?  @relation("PagoModificador", fields: [modifiedBy], references: [usuarioId])
+  eliminador  Usuario?  @relation("PagoEliminador", fields: [deletedBy], references: [usuarioId])
+
+  @@index([pagoAsistenteId])
+  @@index([pagoEstado])
+  @@map("pagos")
+}
+
+// ---------------------------------------------------------------------------
+// Entrada emitida con QR (entidad critica: soft delete)
+// ---------------------------------------------------------------------------
+model Entrada {
+  entradaId            Int    @id @default(autoincrement()) @map("entrada_id")
+  entradaAsistenteId   Int    @unique @map("entrada_asistente_id")
+  entradaTipoEntradaId Int    @map("entrada_tipo_entrada_id")
+  /// Codigo legible para tipear en la puerta: SOMOS-XXXXXX
+  entradaCodigo        String @unique @map("entrada_codigo") @db.VarChar(24)
+  /// Secreto que viaja dentro del QR. No se muestra en texto plano.
+  entradaToken         String @unique @map("entrada_token") @db.VarChar(64)
+  /// valida | quemada | anulada
+  entradaEstado        String @default("valida") @map("entrada_estado") @db.VarChar(20)
+
+  entradaFechaEmision DateTime  @default(now()) @map("entrada_fecha_emision")
+  entradaFechaQuemada DateTime? @map("entrada_fecha_quemada")
+  entradaQuemadaPor   Int?      @map("entrada_quemada_por")
+  entradaCorreoEnviado Boolean  @default(false) @map("entrada_correo_enviado")
+  entradaCorreoFecha  DateTime? @map("entrada_correo_fecha")
+
+  createdBy  Int       @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  modifiedBy Int?      @map("modified_by")
+  modifiedAt DateTime  @default(now()) @map("modified_at")
+  isDeleted  Boolean   @default(false) @map("is_deleted")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  Int?      @map("deleted_by")
+
+  asistente   Asistente   @relation(fields: [entradaAsistenteId], references: [asistenteId])
+  tipoEntrada TipoEntrada @relation(fields: [entradaTipoEntradaId], references: [tipoEntradaId])
+  quemadaPor  Usuario?    @relation("EntradaQuemadaPor", fields: [entradaQuemadaPor], references: [usuarioId])
+  creador     Usuario     @relation("EntradaCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario?    @relation("EntradaModificador", fields: [modifiedBy], references: [usuarioId])
+  eliminador  Usuario?    @relation("EntradaEliminador", fields: [deletedBy], references: [usuarioId])
+
+  escaneos Escaneo[]
+
+  @@index([entradaEstado])
+  @@map("entradas")
+}
+
+// ---------------------------------------------------------------------------
+// Bitacora de puerta. Registro inmutable: no se edita ni se borra.
+// ---------------------------------------------------------------------------
+model Escaneo {
+  escaneoId        Int      @id @default(autoincrement()) @map("escaneo_id")
+  escaneoEntradaId Int?     @map("escaneo_entrada_id")
+  escaneoCodigo    String   @map("escaneo_codigo") @db.VarChar(120)
+  /// autorizado | ya_usada | no_existe | anulada
+  escaneoResultado String   @map("escaneo_resultado") @db.VarChar(30)
+  escaneoUsuarioId Int      @map("escaneo_usuario_id")
+  escaneoFecha     DateTime @default(now()) @map("escaneo_fecha")
+  escaneoIp        String?  @map("escaneo_ip") @db.VarChar(45)
+  escaneoUserAgent String?  @map("escaneo_user_agent") @db.VarChar(300)
+
+  entrada Entrada? @relation(fields: [escaneoEntradaId], references: [entradaId])
+  usuario Usuario  @relation(fields: [escaneoUsuarioId], references: [usuarioId])
+
+  @@index([escaneoFecha])
+  @@index([escaneoEntradaId])
+  @@map("escaneos")
+}
