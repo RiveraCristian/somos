@@ -1,5 +1,6 @@
 import { fintocHabilitado, verificarCredencialesFintoc } from './fintoc';
 import { mercadoPagoHabilitado, verificarCredencialesMp } from './mercadopago';
+import { MODO_VITRINA } from './vitrina';
 
 export const PASARELAS = ['fintoc', 'mercadopago'] as const;
 export type Pasarela = (typeof PASARELAS)[number];
@@ -21,6 +22,11 @@ export const ETIQUETAS_PASARELA: Record<Pasarela, string> = {
  * donde no correspondia.
  */
 export function pasarelaActiva(): Pasarela | null {
+  // La vitrina se compila sin credenciales, pero tiene que mostrar el sitio
+  // como es: el cobro va por Fintoc. Si no, la demo describiria un flujo manual
+  // que ya no existe. Aca no se cobra nada — solo se renderiza la portada.
+  if (MODO_VITRINA) return 'fintoc';
+
   const elegida = (process.env.PASARELA ?? '').trim().toLowerCase();
 
   if (elegida === 'fintoc') {
