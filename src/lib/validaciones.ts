@@ -39,7 +39,14 @@ export const esquemaRegistro = z.object({
 
 export type DatosRegistro = z.infer<typeof esquemaRegistro>;
 
-export const esquemaPago = z.object({
+/**
+ * Pago registrado a mano desde el panel.
+ *
+ * Ya no existe el camino en que el comprador declara su propia transferencia:
+ * el sitio cobra por la pasarela. Esto lo usa produccion para los pagos que
+ * llegan por fuera (efectivo, un banco que la pasarela no cubre).
+ */
+export const esquemaPagoManual = z.object({
   monto: z.coerce
     .number({ invalid_type_error: 'Escribe el monto en números.' })
     .int('El monto debe ser un número entero.')

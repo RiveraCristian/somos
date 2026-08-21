@@ -2,12 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
+  AlertTriangle,
   ArrowRight,
   BadgeCheck,
-  ChevronDown,
   Clock3,
   Info,
-  Landmark,
   Loader2,
   QrCode,
   ShieldCheck,
@@ -15,7 +14,6 @@ import {
   Zap,
 } from 'lucide-react';
 
-import { DatoCopiable } from '@/components/publico/DatoCopiable';
 import { Encabezado } from '@/components/publico/Encabezado';
 import { PiePagina } from '@/components/publico/PiePagina';
 import { conciliarPagosPasarela } from '@/lib/conciliacion';
@@ -27,7 +25,6 @@ import { clavePublicaMercadoPago } from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
 
 import { BotonPagarEnLinea } from './BotonPagarEnLinea';
-import { FormularioPago } from './FormularioPago';
 import { PagoMercadoPago } from './PagoMercadoPago';
 
 export const dynamic = 'force-dynamic';
@@ -77,15 +74,6 @@ export default async function PaginaMiEntrada({
   const pasarela = pasarelaActiva();
   const enLinea = pasarela !== null;
   const activa = asistente.asistenteEstado !== 'anulado' && evento.eventoEstado !== 'finalizado';
-
-  const datosCuenta = [
-    { etiqueta: 'Titular', valor: evento.eventoCuentaNombre },
-    { etiqueta: 'RUT', valor: evento.eventoCuentaRut },
-    { etiqueta: 'Banco', valor: evento.eventoCuentaBanco },
-    { etiqueta: 'Tipo de cuenta', valor: evento.eventoCuentaTipo },
-    { etiqueta: 'N° de cuenta', valor: evento.eventoCuentaNumero },
-    { etiqueta: 'Correo', valor: evento.eventoCuentaCorreo },
-  ].filter((d): d is { etiqueta: string; valor: string } => Boolean(d.valor));
 
   return (
     <>
@@ -247,56 +235,24 @@ export default async function PaginaMiEntrada({
             </section>
           )}
 
-          {/* ------------------------------------------------- Transferencia manual */}
-          {activa && saldo > 0 && (
+          {/* -------------------------------------- Sin pasarela: no hay como pagar */}
+          {/* Ya no existe el camino de transferir a mano: se paga por la pasarela y
+              la entrada se emite sola. Si la pasarela esta caida o sin configurar,
+              se dice derecho, en vez de dejar la pagina sin ninguna forma de pagar. */}
+          {activa && saldo > 0 && !enLinea && (
             <section className="tarjeta p-7 sm:p-9">
-              {enLinea ? (
-                <details className="group">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                    <span className="flex items-center gap-3">
-                      <Landmark size={19} className="text-violeta" />
-                      <span className="titulo-display text-xl">Prefiero transferir por mi cuenta</span>
-                    </span>
-                    <ChevronDown
-                      size={18}
-                      className="shrink-0 text-dim transition-transform group-open:rotate-180"
-                    />
-                  </summary>
-                  <div className="pt-6">
-                    <TransferenciaManual
-                      datos={datosCuenta}
-                      qr={evento.eventoCuentaQrUrl}
-                      saldo={saldo}
-                    />
-                    <div className="regla my-8" />
-                    <FormularioPago
-                      token={asistente.asistenteToken}
-                      precio={precio}
-                      saldoPendiente={saldo}
-                    />
-                  </div>
-                </details>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3">
-                    <Landmark size={19} className="text-violeta" />
-                    <h2 className="titulo-display text-xl">Paga por transferencia</h2>
-                  </div>
-                  <div className="pt-6">
-                    <TransferenciaManual
-                      datos={datosCuenta}
-                      qr={evento.eventoCuentaQrUrl}
-                      saldo={saldo}
-                    />
-                    <div className="regla my-8" />
-                    <FormularioPago
-                      token={asistente.asistenteToken}
-                      precio={precio}
-                      saldoPendiente={saldo}
-                    />
-                  </div>
-                </>
-              )}
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={19} className="mt-0.5 shrink-0 text-alerta" />
+                <div>
+                  <h2 className="titulo-display text-xl">El pago está fuera por ahora</h2>
+                  <p className="mt-3 leading-relaxed text-dim">
+                    No podemos cobrarte en línea en este momento. Tu entrada sigue reservada:
+                    guarda este link y vuelve en un rato. Si se demora, escríbenos
+                    {evento.eventoInstagram ? ` a @${evento.eventoInstagram}` : ' por Instagram'} y
+                    lo resolvemos contigo.
+                  </p>
+                </div>
+              </div>
             </section>
           )}
 
@@ -348,57 +304,6 @@ export default async function PaginaMiEntrada({
       </main>
 
       <PiePagina instagram={evento.eventoInstagram} ciudad={evento.eventoCiudad} />
-    </>
-  );
-}
-
-function TransferenciaManual({
-  datos,
-  qr,
-  saldo,
-}: {
-  datos: { etiqueta: string; valor: string }[];
-  qr: string | null;
-  saldo: number;
-}) {
-  return (
-    <>
-      <p className="mb-6 leading-relaxed text-dim">
-        Transfiere <b className="dato text-ink">{pesos(saldo)}</b> a estos datos y sube la captura.
-      </p>
-
-      <div className="grid gap-7 lg:grid-cols-[1fr_auto]">
-        <div className="rounded-[12px] border border-line bg-white/[0.02] px-5">
-          {datos.length > 0 ? (
-            datos.map((d) => <DatoCopiable key={d.etiqueta} etiqueta={d.etiqueta} valor={d.valor} />)
-          ) : (
-            <p className="py-6 text-sm text-dim">
-              Todavía no cargamos los datos de transferencia. Escríbenos por Instagram.
-            </p>
-          )}
-        </div>
-
-        {qr && (
-          <figure className="flex flex-col items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qr}
-              alt="QR para transferir"
-              className="h-44 w-44 rounded-[12px] border border-line bg-white object-contain p-2"
-            />
-            <figcaption className="dato text-[0.65rem] tracking-[0.14em] text-faint uppercase">
-              Escanéalo desde tu banco
-            </figcaption>
-          </figure>
-        )}
-      </div>
-
-      <p className="mt-6 flex items-start gap-2.5 rounded-[10px] border border-line bg-white/[0.02] px-4 py-3 text-sm leading-relaxed text-dim">
-        <Info size={15} className="mt-0.5 shrink-0 text-cyan" />
-        Cuando transfieres por tu cuenta, el banco no nos avisa: revisamos cada comprobante a
-        mano. Por eso te pedimos la captura, y por eso tu entrada tarda un poco más que pagando
-        acá arriba.
-      </p>
     </>
   );
 }

@@ -236,14 +236,15 @@ export function FormularioEvento({ datos }: { datos: DatosEvento }) {
       {/* -------------------------------------------- Cuenta de respaldo */}
       <fieldset className="flex flex-col gap-5">
         <legend className="dato mb-1 text-[0.65rem] tracking-[0.18em] text-faint uppercase">
-          Cuenta para transferencias manuales
+          Tu cuenta bancaria · referencia interna
         </legend>
 
         <p className="mb-2 text-sm leading-relaxed text-dim">
-          El cobro normal va por Fintoc y no pasa por acá: Fintoc deposita solo en la cuenta que
-          tengas configurada en su panel. Esta cuenta es el camino de respaldo, el que ve quien no
-          pudo usar el widget y prefiere transferir por su cuenta. Como el banco no avisa cuando
-          llega una transferencia, esos pagos los confirmas tú revisando el comprobante.
+          <strong className="text-ink">Esto no se muestra en el sitio.</strong> Quien compra paga
+          con Fintoc y su entrada se emite sola; no existe la opción de transferir por fuera. Estos
+          datos quedan acá solo para tenerlos a mano cuando alguien no pueda pagar con Fintoc y
+          tengas que pasarle la cuenta por WhatsApp. Ese pago después lo registras desde
+          Compradores, con el botón <em>Marcar pagada</em>.
         </p>
 
         <div className="grid gap-5 sm:grid-cols-2">

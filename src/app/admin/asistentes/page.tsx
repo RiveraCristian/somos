@@ -6,6 +6,8 @@ import { EncabezadoPagina } from '@/components/admin/EncabezadoPagina';
 import { fechaHora, numero, pesos } from '@/lib/formato';
 import { prisma } from '@/lib/prisma';
 
+import { PagoManual } from './PagoManual';
+
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Asistentes' };
@@ -90,9 +92,9 @@ export default async function PaginaAsistentes({
           <table className="w-full min-w-[52rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-line text-left">
-                {['Persona', 'Entrada', 'Pagado', 'Estado', 'QR', 'Compra'].map((h) => (
+                {['Persona', 'Entrada', 'Pagado', 'Estado', 'QR', 'Compra', ''].map((h, i) => (
                   <th
-                    key={h}
+                    key={h || i}
                     className="dato px-5 py-3.5 text-[0.65rem] font-medium tracking-[0.16em] text-faint uppercase"
                   >
                     {h}
@@ -104,7 +106,7 @@ export default async function PaginaAsistentes({
             <tbody className="divide-y divide-[var(--color-line)]">
               {asistentes.map((a) => (
                 <tr key={a.asistenteId} className="transition-colors hover:bg-white/[0.025]">
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 align-top">
                     <div className="font-medium">{a.asistenteNombre}</div>
                     <div className="dato text-xs text-dim">{a.asistenteCorreo}</div>
                     {a.asistenteInstagram && (
@@ -112,14 +114,14 @@ export default async function PaginaAsistentes({
                     )}
                   </td>
 
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 align-top">
                     <div>{a.tipoEntrada.tipoEntradaNombre}</div>
                     <div className="dato text-xs text-faint">
                       {pesos(a.asistentePrecio)}
                     </div>
                   </td>
 
-                  <td className="dato px-5 py-3.5 font-semibold">
+                  <td className="dato px-5 py-3.5 align-top font-semibold">
                     {a.asistenteMontoPagado > 0 ? (
                       <span className="text-ok">{pesos(a.asistenteMontoPagado)}</span>
                     ) : (
@@ -127,7 +129,7 @@ export default async function PaginaAsistentes({
                     )}
                   </td>
 
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 align-top">
                     {a.asistenteEstado === 'confirmado' ? (
                       <span className="insignia insignia-ok">Confirmado</span>
                     ) : a.asistenteEstado === 'anulado' ? (
@@ -137,7 +139,7 @@ export default async function PaginaAsistentes({
                     )}
                   </td>
 
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 align-top">
                     {a.entrada ? (
                       <Link
                         href={`/entrada/${a.entrada.entradaToken}`}
@@ -155,7 +157,18 @@ export default async function PaginaAsistentes({
                     )}
                   </td>
 
-                  <td className="dato px-5 py-3.5 text-xs text-dim">{fechaHora(a.createdAt)}</td>
+                  <td className="dato px-5 py-3.5 align-top text-xs text-dim">{fechaHora(a.createdAt)}</td>
+
+                  {/* Valvula de escape: pagos que llegaron por fuera de la pasarela. */}
+                  <td className="px-5 py-3.5 align-top">
+                    {!a.entrada && a.asistenteEstado !== 'anulado' && (
+                      <PagoManual
+                        asistenteId={a.asistenteId}
+                        nombre={a.asistenteNombre}
+                        precio={a.asistentePrecio}
+                      />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

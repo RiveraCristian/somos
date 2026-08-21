@@ -1,8 +1,8 @@
 # SOMOS
 
 Sitio del evento **SOMOS**: fiesta de música electrónica. La gente compra su entrada,
-paga —con Fintoc desde la misma página, o transfiriendo por su cuenta y subiendo el
-comprobante— y recibe un QR de un solo uso que se quema en la puerta.
+paga con Fintoc sin salir de la página, y recibe un QR de un solo uso que se quema en
+la puerta.
 
 Todo corre en **un solo servicio** (Next.js 15: frontend, API y Prisma en el mismo
 proceso). PostgreSQL vive **fuera** de Docker.
@@ -56,24 +56,23 @@ cobro vuelve a mirar el precio vigente.
 
 1. **Elige su entrada** en `/comprar` y deja sus datos. Recibe por correo su link
    privado y la entrada le queda reservada, sin pagar.
-2. **Paga**, por uno de dos caminos:
-   - **En línea sin salir del sitio** (si hay pasarela configurada): transferencia
-     bancaria con Fintoc o tarjeta con Mercado Pago. Se confirma solo.
-   - **Transferencia manual**: transfiere a la cuenta del organizador y sube la
-     captura. Queda *pendiente* hasta que alguien la revise.
-3. **Se emite la entrada**: automáticamente al confirmarse el cobro en línea, o
-   cuando tú apruebas el comprobante en `/admin/pagos`. Ahí se genera el QR y se
-   manda por correo.
+2. **Paga con la pasarela**, sin salir del sitio: transferencia bancaria con Fintoc o
+   tarjeta con Mercado Pago, según cuál esté configurada.
+3. **Se emite la entrada sola**, apenas la pasarela confirma el cobro. Se genera el QR
+   y se manda por correo. Nadie revisa nada.
 4. **En la puerta** se escanea el QR con la cámara. La entrada se quema en el mismo
    acto y queda registrada en la bitácora.
 
-Puede pagar en más de una transferencia: cada pago confirmado se suma a su total y la
-entrada se emite con el primero.
+**No existe el camino de transferir por fuera.** Quien compra no puede declarar un pago
+ni subir un comprobante: o paga con la pasarela, o no paga. Eso saca de encima la
+revisión manual de capturas, que era el cuello de botella.
 
-> **Por qué el camino manual necesita comprobante.** Un banco no le avisa a un sitio
-> web cuando le llega una transferencia: no hay forma de enterarse solo. Por eso ese
-> camino es *captura + confirmación a mano*. El cobro automático es Fintoc (sección 4):
-> ahí es la propia pasarela la que confirma que el dinero se movió.
+> **La válvula de escape.** Para lo que se sale del molde —pagó en efectivo, su banco no
+> está en la lista de Fintoc, te transfirió directo— en `/admin/asistentes` hay un botón
+> **Marcar pagada** que registra el pago y emite la entrada en el acto, con comprobante
+> opcional. Queda como pago `manual`, con quién lo confirmó y cuándo, así la caja sigue
+> cuadrando. Sin esa salida no habría forma de darle la entrada a esa persona salvo
+> tocando la base de datos.
 
 ---
 
@@ -138,11 +137,9 @@ Las dos primeras usan la contraseña de `ADMIN_SEED_PASSWORD`. **Cámbiala.**
 Entra a `/admin/evento` y completa:
 
 1. **Fecha, hora y lugar** — el seed los deja vacíos y el sitio muestra "por confirmar".
-2. **Cuenta bancaria de respaldo** — titular, RUT, banco, tipo y número de cuenta. No es
-   por donde cobra Fintoc (eso se configura en el panel de Fintoc): es la cuenta que ve
-   quien no pudo usar el widget y prefiere transferir por su cuenta.
-3. **QR de transferencia** (opcional) — si tu banco genera uno, déjalo en `public/` y
-   pon su ruta en el campo correspondiente.
+2. **Tu cuenta bancaria** (opcional) — **no se muestra en el sitio**. Queda guardada solo
+   para tenerla a mano cuando le tengas que pasar la cuenta a alguien que no pudo pagar
+   con Fintoc. Por donde cobra Fintoc se configura en el panel de Fintoc, no acá.
 4. **Precios y cupos** de cada tipo de entrada.
 5. **Line-up y preguntas frecuentes** — reemplaza los tres "Por confirmar" del seed.
 6. **La lista de invitados** en `/admin/invitados`. El seed deja un solo número de
@@ -168,11 +165,11 @@ Hay **dos pasarelas implementadas**. Una variable decide cuál se usa:
 ```bash
 PASARELA="fintoc"       # transferencia bancaria
 PASARELA="mercadopago"  # tarjetas de crédito y débito
-PASARELA=""             # ninguna: solo transferencia manual + comprobante
+PASARELA=""             # ninguna: nadie puede pagar (solo pagos a mano desde el panel)
 ```
 
-Si la elegida no tiene sus credenciales cargadas, el sitio se queda con el flujo
-manual y el panel avisa qué falta. **No se autodetecta a propósito**: dejar que el
+Si la elegida no tiene sus credenciales cargadas, nadie puede pagar: la página privada
+lo dice derecho y el panel avisa qué falta. **No se autodetecta a propósito**: dejar que el
 cobro dependa de qué variables quedaron sueltas es una forma fácil de terminar
 cobrando por donde no correspondía.
 
