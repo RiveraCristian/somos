@@ -25,15 +25,31 @@ export type EstadoAsistente = (typeof ESTADOS_ASISTENTE)[number];
 export const ESTADOS_PAGO = ['pendiente', 'confirmado', 'rechazado'] as const;
 export type EstadoPago = (typeof ESTADOS_PAGO)[number];
 
-export const METODOS_PAGO = ['tenpo', 'transferencia', 'efectivo', 'otro'] as const;
+export const METODOS_PAGO = [
+  'tenpo',
+  'transferencia',
+  'efectivo',
+  'fintoc',
+  'mercadopago',
+  'otro',
+] as const;
 export type MetodoPago = (typeof METODOS_PAGO)[number];
+
+/** Los de pasarela no se ofrecen en el formulario manual: los pone el cobro en linea. */
+export const METODOS_DECLARABLES = ['tenpo', 'transferencia', 'efectivo', 'otro'] as const;
 
 export const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   tenpo: 'Tenpo',
   transferencia: 'Transferencia bancaria',
   efectivo: 'Efectivo',
+  fintoc: 'Transferencia en línea',
+  mercadopago: 'Tarjeta (Mercado Pago)',
   otro: 'Otro',
 };
+
+/** Quien confirma el pago: una persona o el webhook de la pasarela. */
+export const PROVEEDORES_PAGO = ['manual', 'fintoc', 'mercadopago'] as const;
+export type ProveedorPago = (typeof PROVEEDORES_PAGO)[number];
 
 export const ESTADOS_ENTRADA = ['valida', 'quemada', 'anulada'] as const;
 export type EstadoEntrada = (typeof ESTADOS_ENTRADA)[number];

@@ -18,7 +18,7 @@ export default async function LayoutPuerta({ children }: { children: React.React
       <header className="sticky top-0 z-30 border-b border-line bg-void/80 backdrop-blur-xl">
         <div className="contenedor flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Logo alto={24} />
+            <Logo alto={36} />
             <span className="dato hidden text-[0.65rem] tracking-[0.2em] text-faint uppercase sm:inline">
               Puerta
             </span>

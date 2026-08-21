@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Mono, Inter, Unbounded } from 'next/font/google';
+import { Chakra_Petch, IBM_Plex_Mono, Inter } from 'next/font/google';
+
+import { ProveedorMovimiento } from '@/components/movimiento/Proveedor';
+import { AvisoDesarrollo } from '@/components/publico/AvisoDesarrollo';
 
 import './globals.css';
 
-const display = Unbounded({
+const display = Chakra_Petch({
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
+  weight: ['500', '600', '700'],
   variable: '--fuente-display',
   display: 'swap',
 });
@@ -54,7 +57,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <AvisoDesarrollo />
+        <ProveedorMovimiento>{children}</ProveedorMovimiento>
+      </body>
     </html>
   );
 }

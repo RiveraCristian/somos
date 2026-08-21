@@ -5,7 +5,7 @@ import { Logo } from '@/components/marca/Logo';
 export default function NoEncontrado() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-7 px-6 text-center">
-      <Logo alto={30} />
+      <Logo alto={52} />
 
       <div>
         <p className="titulo-display text-6xl">

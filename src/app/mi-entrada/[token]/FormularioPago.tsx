@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileUp, Loader2, Paperclip, X } from 'lucide-react';
 
-import { ETIQUETAS_METODO, METODOS_PAGO } from '@/lib/constantes';
+import { ETIQUETAS_METODO, METODOS_DECLARABLES } from '@/lib/constantes';
 import { pesos, tamanoArchivo } from '@/lib/formato';
 
 import { declararPago, type EstadoPago } from './acciones';
@@ -88,7 +88,7 @@ export function FormularioPago({ token, precio, saldoPendiente }: Props) {
             Cómo lo pagaste
           </label>
           <select id="metodo" name="metodo" className="campo-select" defaultValue="tenpo">
-            {METODOS_PAGO.map((m) => (
+            {METODOS_DECLARABLES.map((m) => (
               <option key={m} value={m}>
                 {ETIQUETAS_METODO[m]}
               </option>

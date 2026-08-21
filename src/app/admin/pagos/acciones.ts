@@ -3,12 +3,12 @@
 import { revalidatePath } from 'next/cache';
 
 import { requerirUsuario } from '@/lib/auth';
-import { generarCodigoEntrada, generarToken } from '@/lib/codigos';
 import { ROLES_ADMIN } from '@/lib/constantes';
-import { enviarCorreo, plantillaEntrada, plantillaPagoRechazado } from '@/lib/correo';
-import { fechaLarga, hora } from '@/lib/formato';
+import { enviarCorreo, plantillaPagoRechazado } from '@/lib/correo';
+import { confirmarPagoYEmitir } from '@/lib/emision';
+import { conciliarPagosPasarela } from '@/lib/conciliacion';
+import { pasarelaActiva } from '@/lib/pasarela';
 import { prisma } from '@/lib/prisma';
-import { qrComoPng, urlDeEntrada } from '@/lib/qr';
 
 export type EstadoRevision = { error?: string; ok?: string };
 
@@ -17,10 +17,13 @@ function urlPrivada(token: string): string {
   return `${base}/mi-entrada/${token}`;
 }
 
-/**
- * Confirma un pago: lo marca como recibido, actualiza el total del comprador y,
- * si es su primer pago confirmado, le emite la entrada con QR.
- */
+function refrescar(tokenAsistente: string) {
+  revalidatePath('/admin/pagos');
+  revalidatePath('/admin');
+  revalidatePath(`/mi-entrada/${tokenAsistente}`);
+}
+
+/** Confirma un pago revisado a mano y emite la entrada. */
 export async function confirmarPago(
   _previo: EstadoRevision,
   formulario: FormData,
@@ -34,124 +37,24 @@ export async function confirmarPago(
 
   const pago = await prisma.pago.findFirst({
     where: { pagoId, isDeleted: false },
-    include: {
-      asistente: { include: { evento: true, tipoEntrada: true, entrada: true } },
-    },
+    include: { asistente: { select: { asistenteToken: true } } },
   });
 
   if (!pago) return { error: 'No encontramos ese pago.' };
   if (pago.pagoEstado === 'confirmado') return { error: 'Ese pago ya estaba confirmado.' };
 
-  const asistente = pago.asistente;
+  const resultado = await confirmarPagoYEmitir(pagoId, usuario.usuarioId);
+  refrescar(pago.asistente.asistenteToken);
 
-  // --- Transacción: pago → total del comprador → entrada -------------------
-  const resultado = await prisma.$transaction(async (tx) => {
-    await tx.pago.update({
-      where: { pagoId },
-      data: {
-        pagoEstado: 'confirmado',
-        pagoFechaRevisado: new Date(),
-        pagoRevisadoPor: usuario.usuarioId,
-        pagoMotivoRechazo: null,
-        modifiedBy: usuario.usuarioId,
-      },
-    });
-
-    // El total se recalcula desde los pagos, nunca se suma a mano: así un
-    // rechazo posterior siempre deja la cifra correcta.
-    const suma = await tx.pago.aggregate({
-      _sum: { pagoMonto: true },
-      where: {
-        pagoAsistenteId: asistente.asistenteId,
-        pagoEstado: 'confirmado',
-        isDeleted: false,
-      },
-    });
-
-    const total = suma._sum.pagoMonto ?? 0;
-
-    await tx.asistente.update({
-      where: { asistenteId: asistente.asistenteId },
-      data: {
-        asistenteMontoPagado: total,
-        asistenteEstado: 'confirmado',
-        modifiedBy: usuario.usuarioId,
-      },
-    });
-
-    if (asistente.entrada) {
-      return { total, entrada: asistente.entrada, reciencreada: false };
-    }
-
-    // Emisión de la entrada. El código legible puede chocar: se reintenta.
-    for (let intento = 0; intento < 6; intento += 1) {
-      try {
-        const entrada = await tx.entrada.create({
-          data: {
-            entradaAsistenteId: asistente.asistenteId,
-            entradaTipoEntradaId: asistente.asistenteTipoEntradaId,
-            entradaCodigo: generarCodigoEntrada(),
-            entradaToken: generarToken(24),
-            createdBy: usuario.usuarioId,
-          },
-        });
-        return { total, entrada, reciencreada: true };
-      } catch (e) {
-        const codigo = (e as { code?: string }).code;
-        if (codigo !== 'P2002') throw e;
-      }
-    }
-
-    throw new Error('No se pudo generar un código de entrada único.');
-  });
-
-  revalidatePath('/admin/pagos');
-  revalidatePath('/admin');
-  revalidatePath(`/mi-entrada/${asistente.asistenteToken}`);
-
-  // --- Correo, fuera de la transacción -------------------------------------
-  if (resultado.reciencreada) {
-    const evento = asistente.evento;
-    const fechaTexto = evento.eventoFechaInicio
-      ? `${fechaLarga(evento.eventoFechaInicio)} · ${hora(evento.eventoFechaInicio)} hrs`
-      : null;
-
-    const url = urlDeEntrada(resultado.entrada.entradaToken);
-    const png = await qrComoPng(url);
-
-    const enviado = await enviarCorreo({
-      para: asistente.asistenteCorreo,
-      asunto: `Tu entrada para ${evento.eventoNombre}`,
-      html: plantillaEntrada({
-        nombre: asistente.asistenteNombre,
-        evento: evento.eventoNombre,
-        tipoEntrada: asistente.tipoEntrada.tipoEntradaNombre,
-        codigo: resultado.entrada.entradaCodigo,
-        url,
-        montoPagado: resultado.total,
-        fechaTexto,
-        lugarTexto: evento.eventoVenue
-          ? `${evento.eventoVenue}, ${evento.eventoCiudad}`
-          : evento.eventoCiudad,
-      }),
-      adjuntos: [{ filename: `entrada-${resultado.entrada.entradaCodigo}.png`, content: png }],
-    });
-
-    if (enviado) {
-      await prisma.entrada.update({
-        where: { entradaId: resultado.entrada.entradaId },
-        data: { entradaCorreoEnviado: true, entradaCorreoFecha: new Date() },
-      });
-    }
-
-    return {
-      ok: enviado
-        ? `Entrada ${resultado.entrada.entradaCodigo} emitida y enviada por correo.`
-        : `Entrada ${resultado.entrada.entradaCodigo} emitida. El correo no salió — revisa la configuración de Resend.`,
-    };
+  if (!resultado.reciencreada) {
+    return { ok: 'Pago confirmado y sumado a su total.' };
   }
 
-  return { ok: 'Pago confirmado y sumado a su total.' };
+  return {
+    ok: resultado.correoEnviado
+      ? `Entrada ${resultado.codigo} emitida y enviada por correo.`
+      : `Entrada ${resultado.codigo} emitida. El correo no salió — revisa la configuración de Resend.`,
+  };
 }
 
 /** Rechaza un pago indicando por qué. */
@@ -210,9 +113,7 @@ export async function rechazarPago(
     });
   });
 
-  revalidatePath('/admin/pagos');
-  revalidatePath('/admin');
-  revalidatePath(`/mi-entrada/${asistente.asistenteToken}`);
+  refrescar(asistente.asistenteToken);
 
   await enviarCorreo({
     para: asistente.asistenteCorreo,
@@ -227,4 +128,50 @@ export async function rechazarPago(
   });
 
   return { ok: 'Pago rechazado y avisado por correo.' };
+}
+
+/**
+ * Vuelve a preguntarle a la pasarela por el estado de un cobro.
+ * Sirve cuando el webhook no llego (se cayo el sitio, url mal configurada) y el
+ * pago quedo colgado en pendiente aunque la plata si haya entrado.
+ */
+export async function reconciliarConPasarela(
+  _previo: EstadoRevision,
+  formulario: FormData,
+): Promise<EstadoRevision> {
+  await requerirUsuario(ROLES_ADMIN, '/admin/pagos');
+  const pagoId = Number(formulario.get('pagoId'));
+
+  const pasarela = pasarelaActiva();
+  if (!pasarela) {
+    return { error: 'No hay ninguna pasarela configurada.' };
+  }
+
+  const pago = await prisma.pago.findFirst({
+    where: { pagoId, isDeleted: false },
+    include: { asistente: { select: { asistenteId: true, asistenteToken: true } } },
+  });
+
+  if (!pago || pago.pagoProveedor === 'manual') {
+    return { error: 'Ese pago no vino de una pasarela.' };
+  }
+
+  if (pago.pagoProveedor !== pasarela) {
+    return {
+      error: `Ese cobro es de ${pago.pagoProveedor} y la pasarela activa es ${pasarela}. Cambia PASARELA para revisarlo.`,
+    };
+  }
+
+  const resultado = await conciliarPagosPasarela(pago.asistente.asistenteId);
+  refrescar(pago.asistente.asistenteToken);
+
+  if (!resultado.pagado) {
+    return { error: 'La pasarela dice que el cobro todavía no se completó.' };
+  }
+
+  return {
+    ok: resultado.reciencerrado
+      ? `Cobro confirmado. Entrada ${resultado.codigo} emitida.`
+      : 'El cobro ya estaba confirmado.',
+  };
 }

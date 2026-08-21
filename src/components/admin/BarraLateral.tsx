@@ -7,6 +7,7 @@ import {
   CalendarCog,
   ChevronLeft,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   ScanLine,
   Users,
@@ -20,6 +21,7 @@ const NAVEGACION = [
   { href: '/admin', texto: 'Resumen', icono: LayoutDashboard, exacto: true },
   { href: '/admin/pagos', texto: 'Pagos', icono: Wallet, exacto: false },
   { href: '/admin/asistentes', texto: 'Compradores', icono: Users, exacto: false },
+  { href: '/admin/invitados', texto: 'Invitados', icono: ListChecks, exacto: false },
   { href: '/admin/evento', texto: 'Evento', icono: CalendarCog, exacto: false },
   { href: '/puerta', texto: 'Puerta', icono: ScanLine, exacto: false },
 ];
@@ -72,7 +74,7 @@ export function BarraLateral({ nombre, rol, departamento, pendientes, salir }: P
 
       {/* Cabecera */}
       <Link href="/" className="flex items-center gap-3 lg:px-2 lg:pb-6" aria-label="SOMOS">
-        {colapsada ? <Logo variante="marca" alto={22} /> : <Logo alto={24} />}
+        <Logo alto={colapsada ? 28 : 42} />
       </Link>
 
       {!colapsada && (

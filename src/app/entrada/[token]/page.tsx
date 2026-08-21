@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CalendarDays, MapPin, ShieldCheck } from 'lucide-react';
 
+import { Aparecer } from '@/components/movimiento/Aparecer';
 import { BotonImprimir } from '@/components/publico/BotonImprimir';
 import { Logo } from '@/components/marca/Logo';
 import { paletaDeTipo } from '@/lib/constantes';
@@ -37,12 +38,13 @@ export default async function PaginaEntrada({ params }: { params: Promise<{ toke
       <div className="w-full max-w-sm">
         <div className="no-imprimir mb-7 flex items-center justify-between">
           <Link href="/" aria-label="SOMOS — inicio">
-            <Logo alto={22} />
+            <Logo alto={34} />
           </Link>
           <BotonImprimir />
         </div>
 
         {/* ------------------------------------------------------- El ticket */}
+        <Aparecer>
         <article className="tarjeta-solida relative overflow-hidden">
           {/* Franja de marca */}
           <div className="h-1 bg-[linear-gradient(90deg,#00F0FF,#7B5CFF_52%,#FF2E9A)]" />
@@ -135,6 +137,7 @@ export default async function PaginaEntrada({ params }: { params: Promise<{ toke
             )}
           </div>
         </article>
+        </Aparecer>
 
         <p className="no-imprimir mt-7 text-center text-sm text-dim">
           <Link

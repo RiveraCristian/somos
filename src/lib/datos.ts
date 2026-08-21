@@ -1,6 +1,7 @@
 import { cache } from 'react';
 
 import { prisma } from './prisma';
+import { CUPOS_VITRINA, MODO_VITRINA, eventoDeVitrina } from './vitrina';
 
 /**
  * Evento vigente con todo lo que necesita el sitio publico.
@@ -8,6 +9,9 @@ import { prisma } from './prisma';
  * para que el sitio no quede en blanco mientras se arma el evento.
  */
 export const obtenerEventoPublico = cache(async () => {
+  // En modo vitrina la portada se arma sin base de datos (ver `vitrina.ts`).
+  if (MODO_VITRINA) return eventoDeVitrina();
+
   const evento = await prisma.evento.findFirst({
     where: { isDeleted: false, eventoEstado: { in: ['publicado', 'borrador'] } },
     orderBy: [{ eventoEstado: 'asc' }, { createdAt: 'desc' }],
@@ -97,6 +101,8 @@ export async function resumenVentas(eventoId: number): Promise<ResumenVentas> {
 
 /** Cuantos cupos quedan por tipo de entrada. */
 export async function cuposPorTipo(eventoId: number) {
+  if (MODO_VITRINA) return CUPOS_VITRINA;
+
   const agrupado = await prisma.asistente.groupBy({
     by: ['asistenteTipoEntradaId'],
     where: { asistenteEventoId: eventoId, isDeleted: false, asistenteEstado: { not: 'anulado' } },

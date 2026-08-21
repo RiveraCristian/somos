@@ -9,6 +9,9 @@ out/
 build/
 next-env.d.ts
 
+# landing estatica generada (npm run vitrina)
+.vitrina/
+
 # entorno — nunca versionar secretos
 .env
 .env.local

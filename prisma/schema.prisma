@@ -44,28 +44,33 @@ model Usuario {
   usuarioFechaCreacion      DateTime  @default(now()) @map("usuario_fecha_creacion")
   usuarioFechaDesactivacion DateTime? @map("usuario_fecha_desactivacion")
 
-  sesiones             Sesion[]
-  escaneos             Escaneo[]
-  eventosCreados       Evento[]              @relation("EventoCreador")
-  eventosModificados   Evento[]              @relation("EventoModificador")
-  eventosEliminados    Evento[]              @relation("EventoEliminador")
-  tiposCreados         TipoEntrada[]         @relation("TipoEntradaCreador")
-  tiposModificados     TipoEntrada[]         @relation("TipoEntradaModificador")
-  artistasCreados      Artista[]             @relation("ArtistaCreador")
-  artistasModificados  Artista[]             @relation("ArtistaModificador")
-  preguntasCreadas     PreguntaFrecuente[]   @relation("PreguntaCreador")
-  preguntasModificadas PreguntaFrecuente[]   @relation("PreguntaModificador")
-  asistentesCreados    Asistente[]           @relation("AsistenteCreador")
-  asistentesModificados Asistente[]          @relation("AsistenteModificador")
-  asistentesEliminados Asistente[]           @relation("AsistenteEliminador")
-  pagosCreados         Pago[]                @relation("PagoCreador")
-  pagosModificados     Pago[]                @relation("PagoModificador")
-  pagosEliminados      Pago[]                @relation("PagoEliminador")
-  pagosRevisados       Pago[]                @relation("PagoRevisor")
-  entradasCreadas      Entrada[]             @relation("EntradaCreador")
-  entradasModificadas  Entrada[]             @relation("EntradaModificador")
-  entradasEliminadas   Entrada[]             @relation("EntradaEliminador")
-  entradasQuemadas     Entrada[]             @relation("EntradaQuemadaPor")
+  sesiones              Sesion[]
+  escaneos              Escaneo[]
+  eventosCreados        Evento[]            @relation("EventoCreador")
+  eventosModificados    Evento[]            @relation("EventoModificador")
+  eventosEliminados     Evento[]            @relation("EventoEliminador")
+  tiposCreados          TipoEntrada[]       @relation("TipoEntradaCreador")
+  tiposModificados      TipoEntrada[]       @relation("TipoEntradaModificador")
+  artistasCreados       Artista[]           @relation("ArtistaCreador")
+  artistasModificados   Artista[]           @relation("ArtistaModificador")
+  preguntasCreadas      PreguntaFrecuente[] @relation("PreguntaCreador")
+  preguntasModificadas  PreguntaFrecuente[] @relation("PreguntaModificador")
+  asistentesCreados     Asistente[]         @relation("AsistenteCreador")
+  asistentesModificados Asistente[]         @relation("AsistenteModificador")
+  asistentesEliminados  Asistente[]         @relation("AsistenteEliminador")
+  pagosCreados          Pago[]              @relation("PagoCreador")
+  pagosModificados      Pago[]              @relation("PagoModificador")
+  pagosEliminados       Pago[]              @relation("PagoEliminador")
+  pagosRevisados        Pago[]              @relation("PagoRevisor")
+  entradasCreadas       Entrada[]           @relation("EntradaCreador")
+  entradasModificadas   Entrada[]           @relation("EntradaModificador")
+  entradasEliminadas    Entrada[]           @relation("EntradaEliminador")
+  entradasQuemadas      Entrada[]           @relation("EntradaQuemadaPor")
+  etapasCreadas         EtapaVenta[]        @relation("EtapaCreador")
+  etapasModificadas     EtapaVenta[]        @relation("EtapaModificador")
+  invitadosCreados      Invitado[]          @relation("InvitadoCreador")
+  invitadosModificados  Invitado[]          @relation("InvitadoModificador")
+  invitadosEliminados   Invitado[]          @relation("InvitadoEliminador")
 
   @@map("usuarios")
 }
@@ -129,7 +134,7 @@ model Evento {
   deletedAt  DateTime? @map("deleted_at")
   deletedBy  Int?      @map("deleted_by")
 
-  creador     Usuario @relation("EventoCreador", fields: [createdBy], references: [usuarioId])
+  creador     Usuario  @relation("EventoCreador", fields: [createdBy], references: [usuarioId])
   modificador Usuario? @relation("EventoModificador", fields: [modifiedBy], references: [usuarioId])
   eliminador  Usuario? @relation("EventoEliminador", fields: [deletedBy], references: [usuarioId])
 
@@ -137,6 +142,8 @@ model Evento {
   artistas     Artista[]
   preguntas    PreguntaFrecuente[]
   asistentes   Asistente[]
+  etapas       EtapaVenta[]
+  invitados    Invitado[]
 
   @@map("eventos")
 }
@@ -180,18 +187,18 @@ model TipoEntrada {
 // Line-up
 // ---------------------------------------------------------------------------
 model Artista {
-  artistaId         Int       @id @default(autoincrement()) @map("artista_id")
-  artistaEventoId   Int       @map("artista_evento_id")
-  artistaNombre     String    @map("artista_nombre") @db.VarChar(120)
-  artistaGenero     String?   @map("artista_genero") @db.VarChar(80)
-  artistaDescripcion String?  @map("artista_descripcion") @db.VarChar(400)
-  artistaHoraInicio DateTime? @map("artista_hora_inicio")
+  artistaId          Int       @id @default(autoincrement()) @map("artista_id")
+  artistaEventoId    Int       @map("artista_evento_id")
+  artistaNombre      String    @map("artista_nombre") @db.VarChar(120)
+  artistaGenero      String?   @map("artista_genero") @db.VarChar(80)
+  artistaDescripcion String?   @map("artista_descripcion") @db.VarChar(400)
+  artistaHoraInicio  DateTime? @map("artista_hora_inicio")
   artistaHoraTermino DateTime? @map("artista_hora_termino")
-  artistaInstagram  String?   @map("artista_instagram") @db.VarChar(120)
-  artistaImagenUrl  String?   @map("artista_imagen_url") @db.VarChar(500)
-  artistaOrden      Int       @default(0) @map("artista_orden")
-  artistaDestacado  Boolean   @default(false) @map("artista_destacado")
-  artistaActivo     Boolean   @default(true) @map("artista_activo")
+  artistaInstagram   String?   @map("artista_instagram") @db.VarChar(120)
+  artistaImagenUrl   String?   @map("artista_imagen_url") @db.VarChar(500)
+  artistaOrden       Int       @default(0) @map("artista_orden")
+  artistaDestacado   Boolean   @default(false) @map("artista_destacado")
+  artistaActivo      Boolean   @default(true) @map("artista_activo")
 
   createdBy  Int      @map("created_by")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -248,6 +255,12 @@ model Asistente {
   asistenteEstado        String  @default("pendiente") @map("asistente_estado") @db.VarChar(30)
   /// Suma denormalizada de los pagos confirmados, para listados rapidos.
   asistenteMontoPagado   Int     @default(0) @map("asistente_monto_pagado")
+  /// Precio congelado al reservar. Es lo que esta persona debe pagar, aunque
+  /// despues suba la etapa: quien reservo en la primera tanda paga la primera
+  /// tanda. Nunca leer el precio vigente para cobrar.
+  asistentePrecio        Int     @map("asistente_precio")
+  /// Etapa con la que se congelo el precio. Queda para trazabilidad.
+  asistenteEtapaId       Int?    @map("asistente_etapa_id")
 
   createdBy  Int       @map("created_by")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -259,6 +272,7 @@ model Asistente {
 
   evento      Evento      @relation(fields: [asistenteEventoId], references: [eventoId])
   tipoEntrada TipoEntrada @relation(fields: [asistenteTipoEntradaId], references: [tipoEntradaId])
+  etapa       EtapaVenta? @relation(fields: [asistenteEtapaId], references: [etapaId])
   creador     Usuario     @relation("AsistenteCreador", fields: [createdBy], references: [usuarioId])
   modificador Usuario?    @relation("AsistenteModificador", fields: [modifiedBy], references: [usuarioId])
   eliminador  Usuario?    @relation("AsistenteEliminador", fields: [deletedBy], references: [usuarioId])
@@ -269,6 +283,9 @@ model Asistente {
   @@unique([asistenteEventoId, asistenteCorreo])
   @@index([asistenteEventoId])
   @@index([asistenteEstado])
+  /// El telefono es la credencial de invitacion: se consulta en cada compra
+  /// para contar cuantas entradas lleva ese numero.
+  @@index([asistenteEventoId, asistenteTelefono])
   @@map("asistentes")
 }
 
@@ -282,10 +299,19 @@ model Pago {
   pagoId          Int    @id @default(autoincrement()) @map("pago_id")
   pagoAsistenteId Int    @map("pago_asistente_id")
   pagoMonto       Int    @map("pago_monto")
-  /// tenpo | transferencia | efectivo | otro
+  /// tenpo | transferencia | efectivo | fintoc | mercadopago | otro
   pagoMetodo      String @default("tenpo") @map("pago_metodo") @db.VarChar(30)
   /// pendiente | confirmado | rechazado
   pagoEstado      String @default("pendiente") @map("pago_estado") @db.VarChar(30)
+  /// manual = alguien revisa el comprobante · fintoc / mercadopago = pasarela
+  pagoProveedor   String @default("manual") @map("pago_proveedor") @db.VarChar(30)
+
+  /// Identificadores del cobro en la pasarela. Se nombran de forma generica
+  /// porque los dos proveedores tienen dos niveles pero los llaman distinto:
+  ///   fintoc      → checkout session (cs_...) y payment intent (pi_...)
+  ///   mercadopago → no hay sesion previa, solo el id del pago
+  pagoExternoSesion String? @unique @map("pago_externo_sesion") @db.VarChar(120)
+  pagoExternoPago   String? @map("pago_externo_pago") @db.VarChar(120)
 
   /// Nombre del archivo guardado en UPLOADS_DIR (no es la ruta absoluta).
   pagoComprobanteArchivo String? @map("pago_comprobante_archivo") @db.VarChar(300)
@@ -333,11 +359,11 @@ model Entrada {
   /// valida | quemada | anulada
   entradaEstado        String @default("valida") @map("entrada_estado") @db.VarChar(20)
 
-  entradaFechaEmision DateTime  @default(now()) @map("entrada_fecha_emision")
-  entradaFechaQuemada DateTime? @map("entrada_fecha_quemada")
-  entradaQuemadaPor   Int?      @map("entrada_quemada_por")
-  entradaCorreoEnviado Boolean  @default(false) @map("entrada_correo_enviado")
-  entradaCorreoFecha  DateTime? @map("entrada_correo_fecha")
+  entradaFechaEmision  DateTime  @default(now()) @map("entrada_fecha_emision")
+  entradaFechaQuemada  DateTime? @map("entrada_fecha_quemada")
+  entradaQuemadaPor    Int?      @map("entrada_quemada_por")
+  entradaCorreoEnviado Boolean   @default(false) @map("entrada_correo_enviado")
+  entradaCorreoFecha   DateTime? @map("entrada_correo_fecha")
 
   createdBy  Int       @map("created_by")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -380,4 +406,104 @@ model Escaneo {
   @@index([escaneoFecha])
   @@index([escaneoEntradaId])
   @@map("escaneos")
+}
+
+// ---------------------------------------------------------------------------
+// Webhooks recibidos. Tabla tecnica: sin campos de auditoria.
+//
+// Fintoc puede reenviar el mismo evento varias veces, asi que se guarda su id
+// con UNIQUE y se descarta el duplicado. El payload crudo queda almacenado para
+// poder reprocesar o auditar un cobro sin depender de los logs.
+// ---------------------------------------------------------------------------
+model Webhook {
+  webhookId         Int      @id @default(autoincrement()) @map("webhook_id")
+  /// fintoc | mercadopago
+  webhookProveedor  String   @map("webhook_proveedor") @db.VarChar(30)
+  /// Id del evento en el proveedor. Unico: es la llave de deduplicacion.
+  /// Se guarda prefijado con el proveedor para que dos pasarelas no choquen.
+  webhookEventoId   String   @unique @map("webhook_evento_id") @db.VarChar(160)
+  webhookTipo       String   @map("webhook_tipo") @db.VarChar(80)
+  webhookPayload    Json     @map("webhook_payload")
+  webhookRecibidoEn DateTime @default(now()) @map("webhook_recibido_en")
+  webhookProcesado  Boolean  @default(false) @map("webhook_procesado")
+  webhookError      String?  @map("webhook_error") @db.VarChar(500)
+
+  @@index([webhookRecibidoEn])
+  @@map("webhooks")
+}
+
+// ---------------------------------------------------------------------------
+// Etapas de venta
+//
+// El precio no vive en el tipo de entrada sino en la etapa vigente: las
+// primeras N entradas valen una cosa, las siguientes otra, y el dia del evento
+// otra. La etapa se resuelve contando entradas vendidas, no por fecha, salvo la
+// etapa de puerta, que se activa el mismo dia del evento.
+//
+// Al reservar, el precio se copia a `asistente_precio` y ahi queda congelado.
+// ---------------------------------------------------------------------------
+model EtapaVenta {
+  etapaId       Int     @id @default(autoincrement()) @map("etapa_id")
+  etapaEventoId Int     @map("etapa_evento_id")
+  etapaNombre   String  @map("etapa_nombre") @db.VarChar(80)
+  etapaPrecio   Int     @map("etapa_precio")
+  /// Cuantas entradas cubre esta etapa. null = sin tope (es la etapa de relleno).
+  etapaCupo     Int?    @map("etapa_cupo")
+  etapaOrden    Int     @map("etapa_orden")
+  /// Si es true, esta etapa manda el dia del evento sin importar cuanto se vendio.
+  etapaEnPuerta Boolean @default(false) @map("etapa_en_puerta")
+  etapaActiva   Boolean @default(true) @map("etapa_activa")
+
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedBy Int?     @map("modified_by")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  evento      Evento   @relation(fields: [etapaEventoId], references: [eventoId])
+  creador     Usuario  @relation("EtapaCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("EtapaModificador", fields: [modifiedBy], references: [usuarioId])
+
+  asistentes Asistente[]
+
+  @@unique([etapaEventoId, etapaOrden])
+  @@index([etapaEventoId])
+  @@map("etapas_venta")
+}
+
+// ---------------------------------------------------------------------------
+// Lista de invitados (entidad critica: soft delete)
+//
+// La fiesta no se vende al publico: solo compra quien esta en esta lista. La
+// llave es el telefono, normalizado a formato +56XXXXXXXXX, porque es el dato
+// que la organizacion tiene de sus invitados.
+//
+// `invitado_cupo` es cuantas entradas puede sacar ese numero (por defecto 2).
+// ---------------------------------------------------------------------------
+model Invitado {
+  invitadoId       Int     @id @default(autoincrement()) @map("invitado_id")
+  invitadoEventoId Int     @map("invitado_evento_id")
+  /// Normalizado a E.164 chileno: +56 seguido de nueve digitos.
+  invitadoTelefono String  @map("invitado_telefono") @db.VarChar(20)
+  invitadoNombre   String? @map("invitado_nombre") @db.VarChar(200)
+  /// Cuantas entradas puede comprar este numero.
+  invitadoCupo     Int     @default(2) @map("invitado_cupo")
+  invitadoNota     String? @map("invitado_nota") @db.VarChar(300)
+  invitadoActivo   Boolean @default(true) @map("invitado_activo")
+
+  createdBy  Int       @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  modifiedBy Int?      @map("modified_by")
+  modifiedAt DateTime  @default(now()) @map("modified_at")
+  isDeleted  Boolean   @default(false) @map("is_deleted")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  Int?      @map("deleted_by")
+
+  evento      Evento   @relation(fields: [invitadoEventoId], references: [eventoId])
+  creador     Usuario  @relation("InvitadoCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("InvitadoModificador", fields: [modifiedBy], references: [usuarioId])
+  eliminador  Usuario? @relation("InvitadoEliminador", fields: [deletedBy], references: [usuarioId])
+
+  @@unique([invitadoEventoId, invitadoTelefono])
+  @@index([invitadoEventoId])
+  @@map("invitados")
 }

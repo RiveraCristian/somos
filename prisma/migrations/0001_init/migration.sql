@@ -157,6 +157,9 @@ CREATE TABLE "pagos" (
     "pago_monto" INTEGER NOT NULL,
     "pago_metodo" VARCHAR(30) NOT NULL DEFAULT 'tenpo',
     "pago_estado" VARCHAR(30) NOT NULL DEFAULT 'pendiente',
+    "pago_proveedor" VARCHAR(30) NOT NULL DEFAULT 'manual',
+    "pago_externo_sesion" VARCHAR(120),
+    "pago_externo_pago" VARCHAR(120),
     "pago_comprobante_archivo" VARCHAR(300),
     "pago_comprobante_nombre" VARCHAR(300),
     "pago_comprobante_mime" VARCHAR(120),
@@ -216,6 +219,20 @@ CREATE TABLE "escaneos" (
     CONSTRAINT "escaneos_pkey" PRIMARY KEY ("escaneo_id")
 );
 
+-- CreateTable
+CREATE TABLE "webhooks" (
+    "webhook_id" SERIAL NOT NULL,
+    "webhook_proveedor" VARCHAR(30) NOT NULL,
+    "webhook_evento_id" VARCHAR(160) NOT NULL,
+    "webhook_tipo" VARCHAR(80) NOT NULL,
+    "webhook_payload" JSONB NOT NULL,
+    "webhook_recibido_en" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "webhook_procesado" BOOLEAN NOT NULL DEFAULT false,
+    "webhook_error" VARCHAR(500),
+
+    CONSTRAINT "webhooks_pkey" PRIMARY KEY ("webhook_id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "usuarios_usuario_correo_key" ON "usuarios"("usuario_correo");
 
@@ -253,6 +270,9 @@ CREATE INDEX "asistentes_asistente_estado_idx" ON "asistentes"("asistente_estado
 CREATE UNIQUE INDEX "asistentes_asistente_evento_id_asistente_correo_key" ON "asistentes"("asistente_evento_id", "asistente_correo");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "pagos_pago_externo_sesion_key" ON "pagos"("pago_externo_sesion");
+
+-- CreateIndex
 CREATE INDEX "pagos_pago_asistente_id_idx" ON "pagos"("pago_asistente_id");
 
 -- CreateIndex
@@ -275,6 +295,12 @@ CREATE INDEX "escaneos_escaneo_fecha_idx" ON "escaneos"("escaneo_fecha");
 
 -- CreateIndex
 CREATE INDEX "escaneos_escaneo_entrada_id_idx" ON "escaneos"("escaneo_entrada_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "webhooks_webhook_evento_id_key" ON "webhooks"("webhook_evento_id");
+
+-- CreateIndex
+CREATE INDEX "webhooks_webhook_recibido_en_idx" ON "webhooks"("webhook_recibido_en");
 
 -- AddForeignKey
 ALTER TABLE "sesiones" ADD CONSTRAINT "sesiones_sesion_usuario_id_fkey" FOREIGN KEY ("sesion_usuario_id") REFERENCES "usuarios"("usuario_id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -457,16 +483,33 @@ ALTER TABLE "pagos" ADD CONSTRAINT "chk_pago_estado"
   CHECK ("pago_estado" IN ('pendiente', 'confirmado', 'rechazado'));
 
 ALTER TABLE "pagos" ADD CONSTRAINT "chk_pago_metodo"
-  CHECK ("pago_metodo" IN ('tenpo', 'transferencia', 'efectivo', 'otro'));
+  CHECK ("pago_metodo" IN ('tenpo', 'transferencia', 'efectivo', 'fintoc', 'mercadopago', 'otro'));
 
 ALTER TABLE "pagos" ADD CONSTRAINT "chk_pago_monto"
   CHECK ("pago_monto" > 0);
+
+ALTER TABLE "pagos" ADD CONSTRAINT "chk_pago_proveedor"
+  CHECK ("pago_proveedor" IN ('manual', 'fintoc', 'mercadopago'));
+
+-- Un pago de pasarela siempre trae su rastro en el proveedor; uno manual, nunca.
+-- Fintoc crea la sesion antes de cobrar; MercadoPago devuelve el id del pago al
+-- momento de cobrarlo. Por eso basta con que venga uno de los dos.
+ALTER TABLE "pagos" ADD CONSTRAINT "chk_pago_pasarela_coherente"
+  CHECK (
+    ("pago_proveedor" = 'manual'
+      AND "pago_externo_sesion" IS NULL AND "pago_externo_pago" IS NULL)
+    OR ("pago_proveedor" <> 'manual'
+      AND ("pago_externo_sesion" IS NOT NULL OR "pago_externo_pago" IS NOT NULL))
+  );
 
 ALTER TABLE "entradas" ADD CONSTRAINT "chk_entrada_estado"
   CHECK ("entrada_estado" IN ('valida', 'quemada', 'anulada'));
 
 ALTER TABLE "escaneos" ADD CONSTRAINT "chk_escaneo_resultado"
   CHECK ("escaneo_resultado" IN ('autorizado', 'ya_usada', 'no_existe', 'anulada'));
+
+ALTER TABLE "webhooks" ADD CONSTRAINT "chk_webhook_proveedor"
+  CHECK ("webhook_proveedor" IN ('fintoc', 'mercadopago'));
 
 -- --- Coherencia del borrado logico ---------------------------------------
 -- Si is_deleted = TRUE, deleted_at y deleted_by no pueden quedar vacios.
@@ -494,6 +537,11 @@ CREATE INDEX "idx_pagos_pendientes"
 CREATE INDEX "idx_entradas_vigentes"
   ON "entradas" ("entrada_estado")
   WHERE "is_deleted" = FALSE;
+
+-- Busqueda del pago por su id en la pasarela, que es como llega el webhook.
+CREATE INDEX "idx_pagos_externo_pago"
+  ON "pagos" ("pago_externo_pago")
+  WHERE "pago_externo_pago" IS NOT NULL;
 
 -- Un solo evento publicado a la vez.
 CREATE UNIQUE INDEX "idx_evento_publicado_unico"

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { METODOS_PAGO } from './constantes';
+import { METODOS_DECLARABLES } from './constantes';
+import { normalizarTelefono } from './telefono';
 
 const textoLimpio = (max: number) =>
   z
@@ -13,7 +14,21 @@ export const esquemaRegistro = z.object({
   correo: textoLimpio(255)
     .email('Ese correo no se ve válido.')
     .transform((v) => v.toLowerCase()),
-  telefono: textoLimpio(30).optional().or(z.literal('')),
+  // Obligatorio: el telefono es la credencial de invitacion, no un dato de
+  // contacto. Se guarda normalizado para que el tope por numero sea confiable.
+  telefono: textoLimpio(30)
+    .min(1, 'Necesitamos tu teléfono: es lo que usamos para verificar tu invitación.')
+    .transform((v, ctx) => {
+      const normalizado = normalizarTelefono(v);
+      if (!normalizado) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Ese teléfono no se ve válido. Escríbelo como +56 9 1234 5678.',
+        });
+        return z.NEVER;
+      }
+      return normalizado;
+    }),
   instagram: textoLimpio(80)
     .optional()
     .or(z.literal(''))
@@ -30,7 +45,7 @@ export const esquemaPago = z.object({
     .int('El monto debe ser un número entero.')
     .positive('El monto tiene que ser mayor que cero.')
     .max(9_999_999, 'Ese monto es demasiado alto.'),
-  metodo: z.enum(METODOS_PAGO),
+  metodo: z.enum(METODOS_DECLARABLES),
   referencia: textoLimpio(120).optional().or(z.literal('')),
   mensaje: textoLimpio(500).optional().or(z.literal('')),
 });

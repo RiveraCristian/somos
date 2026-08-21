@@ -1,0 +1,67 @@
+name: Portada en GitHub Pages
+
+# Publica la portada estatica en cada push a main.
+#
+# Solo la portada: el resto del sitio (compra, pagos, panel, puerta) necesita
+# servidor y base de datos, y no se puede servir desde Pages. Ver
+# scripts/construir-vitrina.mjs.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Si llegan dos push seguidos, se publica el ultimo. No se cancela a mitad de
+# camino un despliegue ya empezado.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # El cliente de Prisma se importa aunque la vitrina no consulte nada, asi
+      # que tiene que existir. No se conecta: la URL es un relleno para que
+      # `generate` no reclame por la variable.
+      - name: Generar el cliente de Prisma
+        run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://vitrina:vitrina@localhost:5432/vitrina
+
+      - name: Construir la portada estatica
+        run: npm run vitrina
+        env:
+          # El sitio cuelga del nombre del repositorio:
+          # https://<usuario>.github.io/<repo>/
+          VITRINA_BASE_PATH: /${{ github.event.repository.name }}
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .vitrina/out
+
+  publicar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.desplegar.outputs.page_url }}
+    steps:
+      - id: desplegar
+        uses: actions/deploy-pages@v4

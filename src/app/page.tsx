@@ -1,16 +1,21 @@
 import Link from 'next/link';
 import {
   ArrowRight,
-  ChevronDown,
   Clock,
   Disc3,
+  Lock,
   MapPin,
   QrCode,
   Ticket,
   Upload,
   Users,
+  Zap,
 } from 'lucide-react';
 
+import { Acordeon } from '@/components/publico/Acordeon';
+import { EscaleraPrecios } from '@/components/publico/EscaleraPrecios';
+import { Aparecer } from '@/components/movimiento/Aparecer';
+import { Escalonado, ItemEscalonado } from '@/components/movimiento/Escalonado';
 import { CuentaRegresiva } from '@/components/publico/CuentaRegresiva';
 import { Encabezado } from '@/components/publico/Encabezado';
 import { OndaAnimada } from '@/components/publico/OndaAnimada';
@@ -18,30 +23,42 @@ import { PiePagina } from '@/components/publico/PiePagina';
 import { Logo } from '@/components/marca/Logo';
 import { paletaDeTipo } from '@/lib/constantes';
 import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
+import { etapaVigente, listarEtapas } from '@/lib/etapas';
+import { pasarelaActiva } from '@/lib/pasarela';
 import { fechaLarga, hora, numero, pesos } from '@/lib/formato';
 
 // El stock de entradas cambia en vivo: nunca se cachea la pagina.
 export const dynamic = 'force-dynamic';
 
-const PASOS = [
-  {
-    icono: <Users size={18} />,
-    titulo: 'Eliges tu entrada',
-    texto: 'Preventa, General o VIP. Dejas tu nombre y correo y te la reservamos.',
-  },
-  {
-    icono: <Upload size={18} />,
-    titulo: 'Pagas por Tenpo',
-    texto:
-      'Transfieres el valor de tu entrada a nuestra cuenta y subes la captura de la transferencia.',
-  },
-  {
-    icono: <QrCode size={18} />,
-    titulo: 'Te llega tu QR',
-    texto:
-      'Revisamos el comprobante a mano. Al confirmarlo emitimos tu entrada y te la mandamos por correo.',
-  },
-];
+function pasos(enLinea: boolean) {
+  return [
+    {
+      icono: <Users size={18} />,
+      titulo: 'Eliges tu entrada',
+      texto: 'Dejas tu nombre y correo, y te la reservamos al tiro.',
+    },
+    enLinea
+      ? {
+          icono: <Zap size={18} />,
+          titulo: 'Pagas ahí mismo',
+          texto:
+            'Eliges tu banco y apruebas la transferencia sin salir de la página. Si prefieres, también puedes transferir por Tenpo y subir la captura.',
+        }
+      : {
+          icono: <Upload size={18} />,
+          titulo: 'Pagas por Tenpo',
+          texto:
+            'Transfieres el valor de tu entrada a nuestra cuenta y subes la captura de la transferencia.',
+        },
+    {
+      icono: <QrCode size={18} />,
+      titulo: 'Te llega tu QR',
+      texto: enLinea
+        ? 'Apenas se confirma el pago tu entrada aparece en pantalla y te llega por correo.'
+        : 'Revisamos el comprobante a mano. Al confirmarlo emitimos tu entrada y te la mandamos por correo.',
+    },
+  ];
+}
 
 export default async function PaginaInicio() {
   const evento = await obtenerEventoPublico();
@@ -50,7 +67,11 @@ export default async function PaginaInicio() {
     return <SinEvento />;
   }
 
-  const cupos = await cuposPorTipo(evento.eventoId);
+  const [cupos, etapas, etapa] = await Promise.all([
+    cuposPorTipo(evento.eventoId),
+    listarEtapas(evento.eventoId),
+    etapaVigente(evento.eventoId, evento.eventoFechaInicio),
+  ]);
 
   const fechaTexto = fechaLarga(evento.eventoFechaInicio);
   const horaTexto = hora(evento.eventoFechaInicio);
@@ -72,9 +93,9 @@ export default async function PaginaInicio() {
           </p>
 
           <Logo
-            variante="palabra"
-            alto={140}
-            className="animar-aparecer mt-7 h-auto w-full max-w-2xl"
+            alto={260}
+            prioridad
+            className="animar-aparecer mt-8 !h-auto !w-full max-w-xl px-2 sm:max-w-2xl"
           />
 
           {evento.eventoLema && (
@@ -122,11 +143,21 @@ export default async function PaginaInicio() {
       <section id="entradas" className="contenedor scroll-mt-24 py-16">
         <EncabezadoSeccion
           etiqueta="Entradas"
-          titulo="Elige la tuya"
-          descripcion="Una entrada por persona. El QR se quema al entrar, así que no se puede compartir."
+          titulo={evento.tiposEntrada.length === 1 ? 'La entrada' : 'Elige la tuya'}
+          descripcion="Fiesta privada: solo compra quien está en la lista. El precio sube por etapas, así que mientras antes, mejor."
         />
 
-        <div className="grid gap-5 md:grid-cols-3">
+        {/* La grilla se adapta a cuantos tipos haya: con uno solo, tres columnas
+            dejarian la tarjeta descolgada a un costado. */}
+        <Escalonado
+          className={`grid gap-5 ${
+            evento.tiposEntrada.length === 1
+              ? 'mx-auto max-w-md'
+              : evento.tiposEntrada.length === 2
+                ? 'mx-auto max-w-3xl sm:grid-cols-2'
+                : 'md:grid-cols-3'
+          }`}
+        >
           {evento.tiposEntrada.map((tipo) => {
             const paleta = paletaDeTipo(tipo.tipoEntradaColor);
             const tomadas = cupos.get(tipo.tipoEntradaId) ?? 0;
@@ -135,9 +166,9 @@ export default async function PaginaInicio() {
             const agotado = restantes === 0;
 
             return (
+              <ItemEscalonado key={tipo.tipoEntradaId} className="h-full">
               <article
-                key={tipo.tipoEntradaId}
-                className="tarjeta relative flex flex-col gap-5 p-7 transition-all duration-300 hover:-translate-y-1"
+                className="tarjeta relative flex h-full flex-col gap-5 p-7 transition-transform duration-300 hover:-translate-y-1"
                 style={{ borderColor: agotado ? undefined : paleta.borde }}
               >
                 <div
@@ -160,8 +191,12 @@ export default async function PaginaInicio() {
                 </div>
 
                 <div className="relative">
-                  <div className="titulo-display text-4xl">{pesos(tipo.tipoEntradaPrecio)}</div>
-                  <div className="mt-1 text-xs text-faint">por persona</div>
+                  <div className="titulo-display text-4xl">
+                    {pesos(etapa?.precio ?? tipo.tipoEntradaPrecio)}
+                  </div>
+                  <div className="mt-1 text-xs text-faint">
+                    por persona{etapa ? ` · ${etapa.nombre.toLowerCase()}` : ''}
+                  </div>
                 </div>
 
                 {tipo.tipoEntradaDescripcion && (
@@ -187,9 +222,23 @@ export default async function PaginaInicio() {
                   )}
                 </div>
               </article>
+              </ItemEscalonado>
             );
           })}
-        </div>
+        </Escalonado>
+
+        <Aparecer>
+          <EscaleraPrecios etapas={etapas} vigente={etapa} />
+
+          <p className="mx-auto mt-6 flex max-w-2xl items-start gap-2.5 rounded-[12px] border border-[rgba(178,102,255,0.28)] bg-[rgba(178,102,255,0.06)] px-5 py-4 text-sm leading-relaxed text-dim">
+            <Lock size={16} className="mt-0.5 shrink-0 text-violeta" />
+            <span>
+              Para comprar necesitas estar en la lista. Verificamos con tu número de
+              teléfono, y cada número puede sacar hasta dos entradas — la tuya y la de
+              alguien que traigas.
+            </span>
+          </p>
+        </Aparecer>
 
         {fechaTexto && (
           <p className="dato mt-8 text-center text-sm text-dim">
@@ -201,6 +250,7 @@ export default async function PaginaInicio() {
 
       {/* ------------------------------------------------------ CÓMO FUNCIONA */}
       <section id="como-funciona" className="contenedor scroll-mt-24 py-16">
+        <Aparecer>
         <div className="borde-neon tarjeta overflow-hidden">
           <div className="grid gap-10 p-8 sm:p-12 lg:grid-cols-[1fr_1.15fr] lg:gap-14">
             <div>
@@ -208,13 +258,13 @@ export default async function PaginaInicio() {
               <h2 className="titulo-display mt-3 text-3xl sm:text-4xl">Tres pasos y estás dentro</h2>
               <p className="mt-4 max-w-md leading-relaxed text-dim">
                 {evento.eventoDescripcion ??
-                  'Compras tu entrada, pagas por Tenpo y te mandamos el QR por correo.'}
+                  'Compras tu entrada, la pagas por transferencia y te llega tu QR al correo.'}
               </p>
             </div>
 
-            <ol className="flex flex-col gap-5">
-              {PASOS.map((paso, i) => (
-                <li key={paso.titulo} className="tarjeta-solida flex gap-4 p-5">
+            <Escalonado className="flex flex-col gap-5" intervalo={0.11}>
+              {pasos(pasarelaActiva() !== null).map((paso, i) => (
+                <ItemEscalonado key={paso.titulo} className="tarjeta-solida flex gap-4 p-5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line-fuerte bg-white/[0.04] text-cyan">
                     {paso.icono}
                   </div>
@@ -225,11 +275,12 @@ export default async function PaginaInicio() {
                     </div>
                     <p className="mt-1.5 text-sm leading-relaxed text-dim">{paso.texto}</p>
                   </div>
-                </li>
+                </ItemEscalonado>
               ))}
-            </ol>
+            </Escalonado>
           </div>
         </div>
+        </Aparecer>
       </section>
 
       {/* -------------------------------------------------------------- LINEUP */}
@@ -241,14 +292,13 @@ export default async function PaginaInicio() {
             descripcion="El orden de la noche. Se va confirmando a medida que cerramos fechas."
           />
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Escalonado className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {evento.artistas.map((artista) => (
-              <article
+              <ItemEscalonado
                 key={artista.artistaId}
-                className={`tarjeta group relative overflow-hidden p-6 transition-transform duration-300 hover:-translate-y-1 ${
-                  artista.artistaDestacado ? 'sm:col-span-2 lg:col-span-1' : ''
-                }`}
+                className={artista.artistaDestacado ? 'sm:col-span-2 lg:col-span-1' : ''}
               >
+              <article className="tarjeta group relative h-full overflow-hidden p-6 transition-transform duration-300 hover:-translate-y-1">
                 {artista.artistaDestacado && (
                   <span className="insignia insignia-cyan absolute top-5 right-5">Headliner</span>
                 )}
@@ -279,8 +329,9 @@ export default async function PaginaInicio() {
                   </p>
                 )}
               </article>
+              </ItemEscalonado>
             ))}
-          </div>
+          </Escalonado>
         </section>
       )}
 
@@ -289,27 +340,19 @@ export default async function PaginaInicio() {
         <section id="preguntas" className="contenedor scroll-mt-24 py-16">
           <EncabezadoSeccion etiqueta="Preguntas" titulo="Lo que siempre nos preguntan" />
 
-          <div className="mx-auto max-w-3xl divide-y divide-[var(--color-line)] overflow-hidden rounded-[16px] border border-line">
-            {evento.preguntas.map((p) => (
-              <details key={p.preguntaId} className="group bg-white/[0.02] px-6 open:bg-white/[0.035]">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium">
-                  {p.preguntaTexto}
-                  <ChevronDown
-                    size={18}
-                    className="shrink-0 text-dim transition-transform duration-200 group-open:rotate-180"
-                  />
-                </summary>
-                <p className="pb-6 text-sm leading-relaxed whitespace-pre-line text-dim">
-                  {p.preguntaRespuesta}
-                </p>
-              </details>
-            ))}
-          </div>
+          <Acordeon
+            preguntas={evento.preguntas.map((p) => ({
+              id: p.preguntaId,
+              texto: p.preguntaTexto,
+              respuesta: p.preguntaRespuesta,
+            }))}
+          />
         </section>
       )}
 
       {/* --------------------------------------------------------------- CIERRE */}
       <section className="contenedor py-16">
+        <Aparecer>
         <div className="tarjeta relative overflow-hidden px-8 py-14 text-center sm:px-14">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_120%_at_50%_0%,rgba(123,92,255,0.18),transparent_70%)]" />
           <div className="relative">
@@ -325,6 +368,7 @@ export default async function PaginaInicio() {
             </Link>
           </div>
         </div>
+        </Aparecer>
       </section>
 
       <PiePagina instagram={evento.eventoInstagram} ciudad={evento.eventoCiudad} />
@@ -342,18 +386,18 @@ function EncabezadoSeccion({
   descripcion?: string;
 }) {
   return (
-    <div className="mb-9">
+    <Aparecer className="mb-9">
       <p className="eyebrow">{etiqueta}</p>
       <h2 className="titulo-display mt-3 text-3xl sm:text-4xl">{titulo}</h2>
       {descripcion && <p className="mt-3 max-w-2xl leading-relaxed text-dim">{descripcion}</p>}
-    </div>
+    </Aparecer>
   );
 }
 
 function SinEvento() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
-      <Logo alto={40} />
+      <Logo alto={64} />
       <h1 className="titulo-display text-3xl">Todavía no hay ningún evento cargado</h1>
       <p className="max-w-md leading-relaxed text-dim">
         Corre las migraciones y el seed para crear el evento inicial:

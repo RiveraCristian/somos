@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FileWarning, Inbox, Paperclip } from 'lucide-react';
+import { FileWarning, Inbox, Info, Paperclip, Zap } from 'lucide-react';
 
 import { EncabezadoPagina } from '@/components/admin/EncabezadoPagina';
 import { ETIQUETAS_METODO, type MetodoPago } from '@/lib/constantes';
+import { ETIQUETAS_PASARELA, diagnosticoPasarela } from '@/lib/pasarela';
 import { fechaHora, hace, pesos, tamanoArchivo } from '@/lib/formato';
 import { prisma } from '@/lib/prisma';
 
@@ -47,6 +48,7 @@ export default async function PaginaPagos({
 
   const conteoPorEstado = new Map(conteos.map((c) => [c.pagoEstado, c._count._all]));
   const total = conteos.reduce((suma, c) => suma + c._count._all, 0);
+  const pasarela = await diagnosticoPasarela();
 
   return (
     <>
@@ -54,6 +56,42 @@ export default async function PaginaPagos({
         titulo="Pagos"
         subtitulo={`${conteoPorEstado.get('pendiente') ?? 0} esperando revisión de ${total} en total`}
       />
+
+      {/* Diagnóstico: por qué el cobro en línea aparece o no en el sitio. */}
+      <div
+        className={`mb-7 flex items-start gap-3 rounded-[12px] border px-5 py-4 ${
+          pasarela.activa
+            ? 'border-[rgba(53,240,160,0.3)] bg-[rgba(53,240,160,0.06)]'
+            : 'border-line bg-white/[0.02]'
+        }`}
+      >
+        {pasarela.activa ? (
+          <Zap size={18} className="mt-0.5 shrink-0 text-ok" />
+        ) : (
+          <Info size={18} className="mt-0.5 shrink-0 text-dim" />
+        )}
+        <div className="text-sm">
+          {pasarela.activa ? (
+            <>
+              <p className="font-medium">
+                Cobro en línea activo con {ETIQUETAS_PASARELA[pasarela.activa]}
+              </p>
+              <p className="mt-1 text-dim">
+                {pasarela.detalle ??
+                  'Los compradores pagan sin salir del sitio y su entrada se emite sola.'}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">Cobro en línea apagado</p>
+              <p className="mt-1 text-dim">
+                {pasarela.problema} Mientras tanto, todo pasa por transferencia manual y
+                confirmación acá.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* ------------------------------------------------------------ Filtros */}
       <nav className="mb-7 flex flex-wrap gap-2">
@@ -111,9 +149,15 @@ export default async function PaginaPagos({
                       {ETIQUETAS_METODO[pago.pagoMetodo as MetodoPago] ?? pago.pagoMetodo}
                     </span>
 
-                    {pago.pagoMonto !== pago.asistente.tipoEntrada.tipoEntradaPrecio && (
+                    {pago.pagoProveedor !== 'manual' && (
+                      <span className="insignia insignia-cyan">
+                        <Zap size={11} /> Automático
+                      </span>
+                    )}
+
+                    {pago.pagoMonto !== pago.asistente.asistentePrecio && (
                       <span className="insignia insignia-pendiente">
-                        No calza con {pesos(pago.asistente.tipoEntrada.tipoEntradaPrecio)}
+                        No calza con {pesos(pago.asistente.asistentePrecio)}
                       </span>
                     )}
                   </div>
@@ -136,6 +180,8 @@ export default async function PaginaPagos({
                       Declarado {hace(pago.pagoFechaDeclarado)}
                     </span>
                     {pago.pagoReferencia && <span>Op. {pago.pagoReferencia}</span>}
+                    {pago.pagoExternoSesion && <span>Sesión {pago.pagoExternoSesion}</span>}
+                    {pago.pagoExternoPago && <span>Cobro {pago.pagoExternoPago}</span>}
                     {pago.pagoFechaRevisado && pago.revisor && (
                       <span>
                         Revisado por {pago.revisor.usuarioNombre} ·{' '}
@@ -159,7 +205,16 @@ export default async function PaginaPagos({
 
                 {/* Comprobante */}
                 <div className="lg:w-44">
-                  {pago.pagoComprobanteArchivo ? (
+                  {pago.pagoProveedor !== 'manual' ? (
+                    <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-[12px] border border-[rgba(0,240,255,0.25)] bg-[rgba(0,240,255,0.05)] px-3 text-center text-cyan">
+                      <Zap size={20} />
+                      <span className="text-xs leading-relaxed">
+                        Cobro en línea
+                        <br />
+                        <span className="text-faint">sin comprobante que revisar</span>
+                      </span>
+                    </div>
+                  ) : pago.pagoComprobanteArchivo ? (
                     <a
                       href={`/api/comprobante/${pago.pagoComprobanteArchivo}`}
                       target="_blank"
@@ -192,7 +247,9 @@ export default async function PaginaPagos({
                 </div>
 
                 {/* Acciones */}
-                {pago.pagoEstado === 'pendiente' && <AccionesPago pagoId={pago.pagoId} />}
+                {pago.pagoEstado === 'pendiente' && (
+                  <AccionesPago pagoId={pago.pagoId} proveedor={pago.pagoProveedor} />
+                )}
               </div>
             </li>
           ))}

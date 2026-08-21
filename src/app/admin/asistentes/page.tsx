@@ -115,7 +115,7 @@ export default async function PaginaAsistentes({
                   <td className="px-5 py-3.5">
                     <div>{a.tipoEntrada.tipoEntradaNombre}</div>
                     <div className="dato text-xs text-faint">
-                      {pesos(a.tipoEntrada.tipoEntradaPrecio)}
+                      {pesos(a.asistentePrecio)}
                     </div>
                   </td>
 

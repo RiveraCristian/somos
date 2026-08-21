@@ -50,7 +50,7 @@ export async function GET() {
       a.asistenteTelefono,
       a.asistenteInstagram,
       a.tipoEntrada.tipoEntradaNombre,
-      a.tipoEntrada.tipoEntradaPrecio,
+      a.asistentePrecio,
       a.asistenteMontoPagado,
       a.asistenteEstado,
       a.entrada?.entradaCodigo ?? '',

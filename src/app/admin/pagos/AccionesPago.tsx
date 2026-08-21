@@ -1,11 +1,22 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { AlertCircle, Check, CheckCircle2, Loader2, X } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Loader2, RefreshCw, X } from 'lucide-react';
 
-import { confirmarPago, rechazarPago, type EstadoRevision } from './acciones';
+import {
+  confirmarPago,
+  rechazarPago,
+  reconciliarConPasarela,
+  type EstadoRevision,
+} from './acciones';
 
-export function AccionesPago({ pagoId }: { pagoId: number }) {
+type Props = {
+  pagoId: number;
+  /** manual = alguien revisa el comprobante · fintoc = lo confirma el webhook */
+  proveedor: string;
+};
+
+export function AccionesPago({ pagoId, proveedor }: Props) {
   const [estadoOk, accionConfirmar, confirmando] = useActionState<EstadoRevision, FormData>(
     confirmarPago,
     {},
@@ -14,10 +25,15 @@ export function AccionesPago({ pagoId }: { pagoId: number }) {
     rechazarPago,
     {},
   );
+  const [estadoSync, accionSync, sincronizando] = useActionState<EstadoRevision, FormData>(
+    reconciliarConPasarela,
+    {},
+  );
   const [mostrarMotivo, setMostrarMotivo] = useState(false);
 
-  const mensaje = estadoOk.ok ?? estadoNo.ok;
-  const error = estadoOk.error ?? estadoNo.error;
+  const mensaje = estadoOk.ok ?? estadoNo.ok ?? estadoSync.ok;
+  const error = estadoOk.error ?? estadoNo.error ?? estadoSync.error;
+  const dePasarela = proveedor !== 'manual';
 
   if (mensaje) {
     return (
@@ -32,13 +48,30 @@ export function AccionesPago({ pagoId }: { pagoId: number }) {
     <div className="flex flex-col items-stretch gap-2.5 sm:min-w-56">
       {!mostrarMotivo ? (
         <div className="flex flex-wrap gap-2">
-          <form action={accionConfirmar}>
-            <input type="hidden" name="pagoId" value={pagoId} />
-            <button type="submit" className="btn btn-ok btn-sm" disabled={confirmando}>
-              {confirmando ? <Loader2 size={15} className="girando" /> : <Check size={15} />}
-              Confirmar
-            </button>
-          </form>
+          {dePasarela ? (
+            // En un cobro de pasarela la verdad la tiene la pasarela, no
+            // nosotros: por eso no se ofrece confirmarlo a mano, solo volver a
+            // preguntar.
+            <form action={accionSync}>
+              <input type="hidden" name="pagoId" value={pagoId} />
+              <button type="submit" className="btn btn-borde btn-sm" disabled={sincronizando}>
+                {sincronizando ? (
+                  <Loader2 size={15} className="girando" />
+                ) : (
+                  <RefreshCw size={15} />
+                )}
+                Consultar a la pasarela
+              </button>
+            </form>
+          ) : (
+            <form action={accionConfirmar}>
+              <input type="hidden" name="pagoId" value={pagoId} />
+              <button type="submit" className="btn btn-ok btn-sm" disabled={confirmando}>
+                {confirmando ? <Loader2 size={15} className="girando" /> : <Check size={15} />}
+                Confirmar
+              </button>
+            </form>
+          )}
 
           <button
             type="button"

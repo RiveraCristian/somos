@@ -31,7 +31,7 @@
   --color-error: #ff4d6d;
 
   /* --- Tipografia --- */
-  --font-display: var(--fuente-display), 'Unbounded', system-ui, sans-serif;
+  --font-display: var(--fuente-display), 'Chakra Petch', system-ui, sans-serif;
   --font-sans: var(--fuente-sans), 'Inter', system-ui, sans-serif;
   --font-mono: var(--fuente-mono), 'IBM Plex Mono', ui-monospace, monospace;
 
@@ -131,13 +131,14 @@ body::after {
 /* --------------------------------------------------------------------------
    Tipografia de marca
    -------------------------------------------------------------------------- */
-/* Unbounded es ancha y ya trae mucha presencia: pide menos peso, algo menos
-   de tracking negativo y mas aire entre lineas que una grotesca normal. */
+/* Chakra Petch es angular y de esquinas cortadas, el mismo gesto que los
+   biseles del logo. Es algo condensada, asi que aguanta bien el peso 700 y no
+   necesita tracking negativo. */
 .titulo-display {
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.02;
+  letter-spacing: -0.005em;
+  line-height: 1.08;
 }
 
 .eyebrow {

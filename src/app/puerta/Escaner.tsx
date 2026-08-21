@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import {
   AlertTriangle,
   Ban,
@@ -76,6 +77,10 @@ export function Escaner() {
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [bitacora, setBitacora] = useState<Registro[]>([]);
   const [manual, setManual] = useState('');
+  const reducido = useReducedMotion();
+  // Cada lectura necesita su propia llave para que la animacion se repita
+  // aunque el resultado sea identico al anterior.
+  const [lectura, setLectura] = useState(0);
 
   const validar = useCallback(async (codigo: string) => {
     const limpio = codigo.trim();
@@ -107,6 +112,7 @@ export function Escaner() {
 
       const datos = (await respuesta.json()) as Resultado;
       setResultado(datos);
+      setLectura((n) => n + 1);
       pitar(datos.resultado === 'autorizado');
 
       if (navigator.vibrate) {
@@ -258,42 +264,89 @@ export function Escaner() {
         </div>
 
         {/* ------------------------------------------------------ Resultado */}
-        <div
-          className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-[16px] border px-6 py-8 text-center transition-colors"
-          style={
-            estilo
-              ? { borderColor: estilo.borde, background: estilo.fondo }
-              : { borderColor: 'var(--color-line)' }
-          }
+        {/* En la puerta casi no se alcanza a leer: el veredicto entra con un
+            golpe de escala y un destello del color, para que se entienda de
+            reojo si la persona pasa o no. */}
+        <m.div
+          className="relative flex min-h-32 flex-col items-center justify-center gap-2 overflow-hidden rounded-[16px] border px-6 py-8 text-center"
+          animate={{
+            borderColor: estilo ? estilo.borde : 'rgba(234,240,255,0.09)',
+            backgroundColor: estilo ? estilo.fondo : 'rgba(0,0,0,0)',
+          }}
+          transition={{ duration: reducido ? 0 : 0.35 }}
           aria-live="polite"
         >
-          {validando ? (
-            <Loader2 size={26} className="girando text-cyan" />
-          ) : resultado ? (
-            <>
-              <Icono size={30} style={{ color: estilo?.color }} />
-              <p className="titulo-display text-2xl" style={{ color: estilo?.color }}>
-                {resultado.titulo}
-              </p>
-              {resultado.persona && (
-                <p className="text-lg font-medium">
-                  {resultado.persona}
-                  {resultado.tipoEntrada && (
-                    <span className="ml-2 text-sm text-dim">· {resultado.tipoEntrada}</span>
-                  )}
+          <AnimatePresence mode="wait" initial={false}>
+            {validando ? (
+              <m.div
+                key="validando"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reducido ? 0 : 0.15 }}
+              >
+                <Loader2 size={26} className="girando text-cyan" />
+              </m.div>
+            ) : resultado ? (
+              <m.div
+                key={`resultado-${lectura}`}
+                className="flex flex-col items-center gap-2"
+                initial={reducido ? false : { opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+              >
+                <m.span
+                  initial={reducido ? false : { scale: 0.4, rotate: -12 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 18, delay: 0.05 }}
+                  style={{ color: estilo?.color }}
+                >
+                  <Icono size={30} />
+                </m.span>
+
+                <p className="titulo-display text-2xl" style={{ color: estilo?.color }}>
+                  {resultado.titulo}
                 </p>
-              )}
-              <p className="text-sm text-dim">{resultado.detalle}</p>
-              {resultado.codigo && (
-                <p className="dato text-xs tracking-[0.2em] text-faint">{resultado.codigo}</p>
-              )}
-            </>
-          ) : (
-            <p className="dato text-sm tracking-[0.16em] text-faint uppercase">
-              Esperando lectura
-            </p>
+                {resultado.persona && (
+                  <p className="text-lg font-medium">
+                    {resultado.persona}
+                    {resultado.tipoEntrada && (
+                      <span className="ml-2 text-sm text-dim">· {resultado.tipoEntrada}</span>
+                    )}
+                  </p>
+                )}
+                <p className="text-sm text-dim">{resultado.detalle}</p>
+                {resultado.codigo && (
+                  <p className="dato text-xs tracking-[0.2em] text-faint">{resultado.codigo}</p>
+                )}
+              </m.div>
+            ) : (
+              <m.p
+                key="esperando"
+                className="dato text-sm tracking-[0.16em] text-faint uppercase"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reducido ? 0 : 0.2 }}
+              >
+                Esperando lectura
+              </m.p>
+            )}
+          </AnimatePresence>
+
+          {/* Destello que barre el panel en cada lectura nueva. */}
+          {resultado && !reducido && (
+            <m.span
+              key={`destello-${lectura}`}
+              className="pointer-events-none absolute inset-0"
+              style={{ background: estilo?.color }}
+              initial={{ opacity: 0.22 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            />
           )}
-        </div>
+        </m.div>
 
         {/* --------------------------------------------------------- Manual */}
         <form
@@ -338,10 +391,17 @@ export function Escaner() {
           <p className="px-5 py-10 text-center text-sm text-dim">Todavía no escaneas nada.</p>
         ) : (
           <ul className="divide-y divide-[var(--color-line)] overflow-y-auto">
+            <AnimatePresence initial={false}>
             {bitacora.map((registro) => {
               const paleta = ESTILOS[registro.resultado];
               return (
-                <li key={registro.id} className="flex items-center gap-3 px-5 py-3">
+                <m.li
+                  key={registro.id}
+                  className="flex items-center gap-3 px-5 py-3"
+                  initial={reducido ? false : { opacity: 0, x: -14, height: 0 }}
+                  animate={{ opacity: 1, x: 0, height: 'auto' }}
+                  transition={{ duration: reducido ? 0 : 0.28, ease: [0.2, 0.7, 0.3, 1] }}
+                >
                   <span
                     className="h-2 w-2 shrink-0 rounded-full"
                     style={{ background: paleta.color }}
@@ -352,9 +412,10 @@ export function Escaner() {
                       {registro.hora} · {registro.codigo ?? registro.titulo}
                     </p>
                   </div>
-                </li>
+                </m.li>
               );
             })}
+            </AnimatePresence>
           </ul>
         )}
       </aside>

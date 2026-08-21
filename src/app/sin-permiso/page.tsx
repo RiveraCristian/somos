@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function PaginaSinPermiso() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-7 px-6 text-center">
-      <Logo alto={30} />
+      <Logo alto={52} />
 
       <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(255,197,61,0.3)] bg-[rgba(255,197,61,0.08)]">
         <ShieldAlert size={24} className="text-alerta" />

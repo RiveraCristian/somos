@@ -84,9 +84,9 @@ async function main() {
       eventoNombre: 'SOMOS',
       eventoLema: 'Una noche, un lugar, una sola entrada por persona.',
       eventoDescripcion:
-        'Compras tu entrada acá mismo, transfieres por Tenpo y subes el comprobante. ' +
-        'Apenas lo confirmamos te llega tu entrada con un QR único a tu correo. ' +
-        'En la puerta lo escaneamos y listo.',
+        'Compras tu entrada acá mismo y la pagas por transferencia. Apenas se confirma ' +
+        'el pago te llega tu entrada con un QR único a tu correo. En la puerta lo ' +
+        'escaneamos y listo.',
       eventoFechaInicio: null, // por definir
       eventoFechaTermino: null,
       eventoVenue: null, // por definir
@@ -114,35 +114,19 @@ async function main() {
   console.log(`  · evento: ${evento.eventoNombre} (${evento.eventoCiudad})`);
 
   // -------------------------------------------------------------------------
-  // 3. Tipos de entrada (los aportes sugeridos de la maqueta)
+  // 3. Tipos de entrada
   // -------------------------------------------------------------------------
+  // Una sola entrada. Si mas adelante hacen falta tramos (preventa, VIP), se
+  // agregan desde /admin/evento sin tocar codigo.
   const tipos = [
-    {
-      slug: 'preventa',
-      nombre: 'Preventa',
-      descripcion: 'Stock limitado. El precio más bajo, para los que se cuadran temprano.',
-      precio: 8000,
-      cupo: 60,
-      orden: 1,
-      color: 'cyan',
-    },
     {
       slug: 'general',
       nombre: 'General',
       descripcion: 'Acceso al recinto durante toda la noche.',
-      precio: 12000,
-      cupo: 120,
-      orden: 2,
-      color: 'violeta',
-    },
-    {
-      slug: 'vip',
-      nombre: 'VIP',
-      descripcion: 'Acceso preferente, zona exclusiva y barra aparte.',
       precio: 20000,
-      cupo: 20,
-      orden: 3,
-      color: 'magenta',
+      cupo: 200,
+      orden: 1,
+      color: 'cyan',
     },
   ];
 
@@ -170,6 +154,62 @@ async function main() {
   }
 
   console.log(`  · tipos de entrada: ${tipos.map((t) => t.nombre).join(', ')}`);
+
+  // -------------------------------------------------------------------------
+  // 3b. Etapas de venta
+  // -------------------------------------------------------------------------
+  // El precio no lo pone el tipo de entrada sino la etapa vigente: las primeras
+  // 100 mas baratas, despues sube, y el dia del evento sube otra vez.
+  const etapas = [
+    { nombre: 'Primera tanda', precio: 20000, cupo: 100, orden: 1, enPuerta: false },
+    { nombre: 'Segunda tanda', precio: 25000, cupo: null, orden: 2, enPuerta: false },
+    { nombre: 'En puerta', precio: 30000, cupo: null, orden: 3, enPuerta: true },
+  ];
+
+  for (const e of etapas) {
+    await prisma.etapaVenta.upsert({
+      where: {
+        etapaEventoId_etapaOrden: { etapaEventoId: evento.eventoId, etapaOrden: e.orden },
+      },
+      update: {},
+      create: {
+        etapaEventoId: evento.eventoId,
+        etapaNombre: e.nombre,
+        etapaPrecio: e.precio,
+        etapaCupo: e.cupo,
+        etapaOrden: e.orden,
+        etapaEnPuerta: e.enPuerta,
+        createdBy: USUARIO_SISTEMA_ID,
+      },
+    });
+  }
+
+  console.log(`  · etapas: ${etapas.map((e) => `${e.nombre} ${e.precio}`).join(' → ')}`);
+
+  // -------------------------------------------------------------------------
+  // 3c. Lista de invitados
+  // -------------------------------------------------------------------------
+  // SOMOS es privada: sin numeros en esta tabla no puede comprar nadie. Va un
+  // numero de prueba mientras llega la lista real.
+  await prisma.invitado.upsert({
+    where: {
+      invitadoEventoId_invitadoTelefono: {
+        invitadoEventoId: evento.eventoId,
+        invitadoTelefono: '+56999999999',
+      },
+    },
+    update: {},
+    create: {
+      invitadoEventoId: evento.eventoId,
+      invitadoTelefono: '+56999999999',
+      invitadoNombre: 'Numero de prueba',
+      invitadoCupo: 2,
+      invitadoNota: 'Provisorio: reemplazar por la lista real de invitados.',
+      createdBy: USUARIO_SISTEMA_ID,
+    },
+  });
+
+  console.log('  · lista de invitados: +56999999999 (prueba)');
 
   // -------------------------------------------------------------------------
   // 4. Line-up de ejemplo (editable desde el panel)
@@ -227,19 +267,21 @@ async function main() {
           preguntaEventoId: evento.eventoId,
           preguntaTexto: '¿Cómo compro mi entrada?',
           preguntaRespuesta:
-            'Eliges tu entrada y dejas tus datos. Después transfieres por Tenpo a la cuenta que ' +
-            'te mostramos y subes la captura de la transferencia. Cuando la confirmamos te llega ' +
-            'tu entrada con QR al correo.',
+            'Eliges tu entrada y dejas tus datos. Después la pagas por transferencia: si está ' +
+            'habilitado el pago en línea, eliges tu banco y apruebas sin salir de la página. ' +
+            'Si no, transfieres por Tenpo y subes la captura. En ambos casos te llega tu ' +
+            'entrada con QR al correo.',
           preguntaOrden: 1,
           createdBy: USUARIO_SISTEMA_ID,
         },
         {
           preguntaEventoId: evento.eventoId,
-          preguntaTexto: '¿Por qué tengo que subir un comprobante?',
+          preguntaTexto: '¿Es seguro pagar acá?',
           preguntaRespuesta:
-            'Porque Tenpo no le avisa a un sitio web cuando llega una transferencia. Revisamos ' +
-            'cada comprobante a mano para poder emitir tu entrada. Es un paso más, pero nos ahorra ' +
-            'las comisiones de una pasarela de pago.',
+            'El pago en línea te conecta directamente con tu banco: nosotros nunca vemos tus ' +
+            'claves ni los datos de tu cuenta. Si transfieres por Tenpo en vez de eso, te ' +
+            'pedimos la captura porque Tenpo no le avisa a un sitio web cuando llega una ' +
+            'transferencia, así que la revisamos a mano.',
           preguntaOrden: 2,
           createdBy: USUARIO_SISTEMA_ID,
         },

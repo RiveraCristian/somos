@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { generarToken } from '@/lib/codigos';
 import { USUARIO_SISTEMA_ID } from '@/lib/constantes';
 import { enviarCorreo, plantillaRegistro } from '@/lib/correo';
+import { etapaVigente } from '@/lib/etapas';
+import { verificarInvitacion } from '@/lib/invitados';
 import { prisma } from '@/lib/prisma';
 import { esquemaRegistro, primerError } from '@/lib/validaciones';
 
@@ -60,6 +62,18 @@ export async function reservarEntrada(
     return { error: 'Esa entrada ya no está disponible. Elige otra.' };
   }
 
+  // ---------------------------------------------------------------------
+  // Puerta de entrada: la lista de invitados.
+  //
+  // Se revisa antes que nada porque es la regla que define el producto: SOMOS
+  // es privada. El telefono ya viene normalizado desde el esquema.
+  // ---------------------------------------------------------------------
+  const invitacion = await verificarInvitacion(evento.eventoId, datos.telefono);
+
+  if (!invitacion.permitido) {
+    return { error: invitacion.motivo };
+  }
+
   // ¿Ya había comprado con ese correo?
   const existente = await prisma.asistente.findFirst({
     where: {
@@ -81,7 +95,7 @@ export async function reservarEntrada(
         nombre: existente.asistenteNombre,
         evento: evento.eventoNombre,
         tipoEntrada: existente.tipoEntrada.tipoEntradaNombre,
-        precio: existente.tipoEntrada.tipoEntradaPrecio,
+        precio: existente.asistentePrecio,
         url: urlPrivada(existente.asistenteToken),
       }),
     });
@@ -106,6 +120,14 @@ export async function reservarEntrada(
     }
   }
 
+  // El precio sale de la etapa vigente y se congela en el asistente: si mañana
+  // sube la etapa, esta persona sigue debiendo lo que se le cobro hoy.
+  const etapa = await etapaVigente(evento.eventoId, evento.eventoFechaInicio);
+
+  if (!etapa) {
+    return { error: 'Las entradas todavía no tienen precio configurado. Escríbenos por Instagram.' };
+  }
+
   const token = generarToken(24);
 
   await prisma.asistente.create({
@@ -114,10 +136,12 @@ export async function reservarEntrada(
       asistenteTipoEntradaId: tipo.tipoEntradaId,
       asistenteNombre: datos.nombre,
       asistenteCorreo: datos.correo,
-      asistenteTelefono: datos.telefono || null,
+      asistenteTelefono: datos.telefono,
       asistenteInstagram: datos.instagram || null,
       asistenteMensaje: datos.mensaje || null,
       asistenteToken: token,
+      asistentePrecio: etapa.precio,
+      asistenteEtapaId: etapa.etapaId,
       createdBy: USUARIO_SISTEMA_ID,
     },
   });
@@ -129,7 +153,7 @@ export async function reservarEntrada(
       nombre: datos.nombre,
       evento: evento.eventoNombre,
       tipoEntrada: tipo.tipoEntradaNombre,
-      precio: tipo.tipoEntradaPrecio,
+      precio: etapa.precio,
       url: urlPrivada(token),
     }),
   });
@@ -165,7 +189,7 @@ export async function reenviarLink(
         nombre: asistente.asistenteNombre,
         evento: asistente.evento.eventoNombre,
         tipoEntrada: asistente.tipoEntrada.tipoEntradaNombre,
-        precio: asistente.tipoEntrada.tipoEntradaPrecio,
+        precio: asistente.asistentePrecio,
         url: urlPrivada(asistente.asistenteToken),
       }),
     });

@@ -12,7 +12,7 @@ export function PiePagina({ instagram, ciudad }: Props) {
   return (
     <footer className="mt-24 border-t border-line py-14">
       <div className="contenedor flex flex-col items-center gap-7 text-center">
-        <Logo alto={26} mono className="text-faint" />
+        <Logo alto={52} className="opacity-50" />
 
         <p className="max-w-md text-sm leading-relaxed text-dim">
           Fiesta de música electrónica. Una entrada por persona, con QR de un solo uso.

@@ -1,16 +1,34 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BadgeCheck, Clock3, Info, QrCode, Smartphone, XCircle } from 'lucide-react';
+import {
+  ArrowRight,
+  BadgeCheck,
+  ChevronDown,
+  Clock3,
+  Info,
+  Loader2,
+  QrCode,
+  ShieldCheck,
+  Smartphone,
+  XCircle,
+  Zap,
+} from 'lucide-react';
 
 import { DatoCopiable } from '@/components/publico/DatoCopiable';
 import { Encabezado } from '@/components/publico/Encabezado';
 import { PiePagina } from '@/components/publico/PiePagina';
+import { conciliarPagosPasarela } from '@/lib/conciliacion';
 import { ETIQUETAS_METODO, type MetodoPago, paletaDeTipo } from '@/lib/constantes';
 import { obtenerAsistentePorToken } from '@/lib/datos';
+import { clavePublicaFintoc } from '@/lib/fintoc';
 import { fechaHora, pesos } from '@/lib/formato';
+import { clavePublicaMercadoPago } from '@/lib/mercadopago';
+import { pasarelaActiva } from '@/lib/pasarela';
 
+import { BotonPagarEnLinea } from './BotonPagarEnLinea';
 import { FormularioPago } from './FormularioPago';
+import { PagoMercadoPago } from './PagoMercadoPago';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,20 +37,46 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function PaginaMiEntrada({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
-  const asistente = await obtenerAsistentePorToken(token);
+export default async function PaginaMiEntrada({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ pago?: string }>;
+}) {
+  const [{ token }, parametros] = await Promise.all([params, searchParams]);
+
+  let asistente = await obtenerAsistentePorToken(token);
 
   if (!asistente) notFound();
+
+  // Alguien pudo pagar y cerrar la pestaña antes de que llegara el webhook (o
+  // este pudo perderse). Si quedo un cobro colgado, se le pregunta a Fintoc y se
+  // emite la entrada acá mismo. El filtro de antiguedad evita consultar cuando
+  // el cliente ya esta preguntando por su cuenta, recien apretado el boton.
+  const hayCobroColgado =
+    !asistente.entrada &&
+    asistente.pagos.some((p) => p.pagoProveedor !== 'manual' && p.pagoEstado === 'pendiente');
+
+  if (hayCobroColgado) {
+    const conciliado = await conciliarPagosPasarela(asistente.asistenteId, 20_000);
+    if (conciliado.reciencerrado) {
+      asistente = (await obtenerAsistentePorToken(token)) ?? asistente;
+    }
+  }
 
   const { evento, tipoEntrada, entrada, pagos } = asistente;
   const paleta = paletaDeTipo(tipoEntrada.tipoEntradaColor);
 
-  const precio = tipoEntrada.tipoEntradaPrecio;
+  // Precio congelado al reservar: si la etapa subio despues, no le afecta.
+  const precio = asistente.asistentePrecio;
   const pagado = asistente.asistenteMontoPagado;
   const saldo = Math.max(0, precio - pagado);
   const pendientes = pagos.filter((p) => p.pagoEstado === 'pendiente');
   const estaPagada = pagado > 0;
+  const pasarela = pasarelaActiva();
+  const enLinea = pasarela !== null;
+  const activa = asistente.asistenteEstado !== 'anulado' && evento.eventoEstado !== 'finalizado';
 
   const datosTenpo = [
     { etiqueta: 'Titular', valor: evento.eventoTenpoNombre },
@@ -49,6 +93,32 @@ export default async function PaginaMiEntrada({ params }: { params: Promise<{ to
 
       <main className="contenedor py-12">
         <div className="mx-auto flex max-w-3xl flex-col gap-8">
+          {/* ------------------------------------------- Retorno del pago */}
+          {parametros.pago === 'ok' && saldo > 0 && (
+            <div className="flex items-start gap-3 rounded-[14px] border border-[rgba(0,240,255,0.3)] bg-[rgba(0,240,255,0.06)] px-5 py-4">
+              <Loader2 size={18} className="girando mt-0.5 shrink-0 text-cyan" />
+              <div>
+                <p className="font-medium">Estamos confirmando tu pago</p>
+                <p className="mt-1 text-sm leading-relaxed text-dim">
+                  Tu banco ya nos avisó. Puede tardar unos segundos en aparecer acá — recarga la
+                  página en un momento y tu entrada debería estar lista.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {parametros.pago === 'cancelado' && (
+            <div className="flex items-start gap-3 rounded-[14px] border border-[rgba(255,197,61,0.3)] bg-[rgba(255,197,61,0.06)] px-5 py-4">
+              <Info size={18} className="mt-0.5 shrink-0 text-alerta" />
+              <div>
+                <p className="font-medium">No completaste el pago</p>
+                <p className="mt-1 text-sm leading-relaxed text-dim">
+                  Tu entrada sigue reservada. Puedes intentarlo de nuevo cuando quieras.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* ------------------------------------------------------- Estado */}
           <header className="tarjeta p-7 sm:p-9">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -140,72 +210,95 @@ export default async function PaginaMiEntrada({ params }: { params: Promise<{ to
             </section>
           )}
 
-          {/* ------------------------------------------------- Cómo pagarla */}
-          {asistente.asistenteEstado !== 'anulado' && saldo > 0 && (
-            <section className="tarjeta p-7 sm:p-9">
+          {/* --------------------------------------------------- Pago en línea */}
+          {activa && saldo > 0 && enLinea && (
+            <section className="borde-neon tarjeta p-7 sm:p-9">
               <div className="flex items-center gap-3">
-                <Smartphone size={19} className="text-violeta" />
-                <h2 className="titulo-display text-xl">Paga por Tenpo</h2>
+                <Zap size={19} className="text-cyan" />
+                <h2 className="titulo-display text-xl">Paga al tiro</h2>
               </div>
 
-              <p className="mt-3 leading-relaxed text-dim">
-                Transfiere <b className="dato text-ink">{pesos(saldo)}</b> a estos datos desde tu app
-                de Tenpo. Después vuelve acá y sube la captura para que emitamos tu entrada.
+              <p className="mt-3 mb-6 leading-relaxed text-dim">
+                {pasarela === 'fintoc'
+                  ? 'Transferencia directa desde tu banco, sin salir de esta página. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'
+                  : 'Paga con tu tarjeta acá mismo. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'}
               </p>
 
-              <div className="mt-7 grid gap-7 lg:grid-cols-[1fr_auto]">
-                <div className="rounded-[12px] border border-line bg-white/[0.02] px-5">
-                  {datosTenpo.length > 0 ? (
-                    datosTenpo.map((d) => (
-                      <DatoCopiable key={d.etiqueta} etiqueta={d.etiqueta} valor={d.valor} />
-                    ))
-                  ) : (
-                    <p className="py-6 text-sm text-dim">
-                      Todavía no cargamos los datos de transferencia. Escríbenos por Instagram.
-                    </p>
-                  )}
-                </div>
+              {pasarela === 'fintoc' ? (
+                <BotonPagarEnLinea
+                  token={asistente.asistenteToken}
+                  monto={saldo}
+                  clavePublica={clavePublicaFintoc()}
+                />
+              ) : (
+                <PagoMercadoPago
+                  token={asistente.asistenteToken}
+                  monto={saldo}
+                  clavePublica={clavePublicaMercadoPago()}
+                  correo={asistente.asistenteCorreo}
+                />
+              )}
 
-                {evento.eventoTenpoQrUrl && (
-                  <figure className="flex flex-col items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={evento.eventoTenpoQrUrl}
-                      alt="QR de cobro de Tenpo"
-                      className="h-44 w-44 rounded-[12px] border border-line bg-white object-contain p-2"
-                    />
-                    <figcaption className="dato text-[0.65rem] tracking-[0.14em] text-faint uppercase">
-                      Escanéalo desde Tenpo
-                    </figcaption>
-                  </figure>
-                )}
-              </div>
-
-              <p className="mt-6 flex items-start gap-2.5 rounded-[10px] border border-line bg-white/[0.02] px-4 py-3 text-sm leading-relaxed text-dim">
-                <Info size={15} className="mt-0.5 shrink-0 text-cyan" />
-                Tenpo no nos avisa automáticamente cuando llega una transferencia, así que
-                revisamos cada comprobante a mano. Por eso te pedimos la captura.
+              <p className="mt-5 flex items-start gap-2.5 text-xs leading-relaxed text-faint">
+                <ShieldCheck size={14} className="mt-0.5 shrink-0 text-ok" />
+                Te conectas con tu propio banco. Nosotros nunca vemos tus claves ni los datos de
+                tu cuenta.
               </p>
             </section>
           )}
 
-          {/* ----------------------------------------------- Subir comprobante */}
-          {asistente.asistenteEstado !== 'anulado' &&
-            evento.eventoEstado !== 'finalizado' &&
-            saldo > 0 && (
-              <section className="tarjeta p-7 sm:p-9">
-                <h2 className="titulo-display text-xl">Sube tu comprobante</h2>
-                <p className="mt-2.5 mb-7 leading-relaxed text-dim">
-                  Con esto confirmamos el pago y te emitimos la entrada con tu QR.
-                </p>
-
-                <FormularioPago
-                  token={asistente.asistenteToken}
-                  precio={precio}
-                  saldoPendiente={saldo}
-                />
-              </section>
-            )}
+          {/* ------------------------------------------------- Transferencia manual */}
+          {activa && saldo > 0 && (
+            <section className="tarjeta p-7 sm:p-9">
+              {enLinea ? (
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                    <span className="flex items-center gap-3">
+                      <Smartphone size={19} className="text-violeta" />
+                      <span className="titulo-display text-xl">Prefiero transferir por Tenpo</span>
+                    </span>
+                    <ChevronDown
+                      size={18}
+                      className="shrink-0 text-dim transition-transform group-open:rotate-180"
+                    />
+                  </summary>
+                  <div className="pt-6">
+                    <TransferenciaManual
+                      datos={datosTenpo}
+                      qr={evento.eventoTenpoQrUrl}
+                      saldo={saldo}
+                    />
+                    <div className="regla my-8" />
+                    <FormularioPago
+                      token={asistente.asistenteToken}
+                      precio={precio}
+                      saldoPendiente={saldo}
+                    />
+                  </div>
+                </details>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <Smartphone size={19} className="text-violeta" />
+                    <h2 className="titulo-display text-xl">Paga por Tenpo</h2>
+                  </div>
+                  <div className="pt-6">
+                    <TransferenciaManual
+                      datos={datosTenpo}
+                      qr={evento.eventoTenpoQrUrl}
+                      saldo={saldo}
+                    />
+                    <div className="regla my-8" />
+                    <FormularioPago
+                      token={asistente.asistenteToken}
+                      precio={precio}
+                      saldoPendiente={saldo}
+                    />
+                  </div>
+                </>
+              )}
+            </section>
+          )}
 
           {/* ---------------------------------------------------- Historial */}
           {pagos.length > 0 && (
@@ -235,7 +328,9 @@ export default async function PaginaMiEntrada({ params }: { params: Promise<{ to
                     ) : pago.pagoEstado === 'rechazado' ? (
                       <span className="insignia insignia-error">Rechazado</span>
                     ) : (
-                      <span className="insignia insignia-pendiente">En revisión</span>
+                      <span className="insignia insignia-pendiente">
+                        {pago.pagoProveedor === 'fintoc' ? 'Esperando el banco' : 'En revisión'}
+                      </span>
                     )}
                   </li>
                 ))}
@@ -253,6 +348,56 @@ export default async function PaginaMiEntrada({ params }: { params: Promise<{ to
       </main>
 
       <PiePagina instagram={evento.eventoInstagram} ciudad={evento.eventoCiudad} />
+    </>
+  );
+}
+
+function TransferenciaManual({
+  datos,
+  qr,
+  saldo,
+}: {
+  datos: { etiqueta: string; valor: string }[];
+  qr: string | null;
+  saldo: number;
+}) {
+  return (
+    <>
+      <p className="mb-6 leading-relaxed text-dim">
+        Transfiere <b className="dato text-ink">{pesos(saldo)}</b> a estos datos y sube la captura.
+      </p>
+
+      <div className="grid gap-7 lg:grid-cols-[1fr_auto]">
+        <div className="rounded-[12px] border border-line bg-white/[0.02] px-5">
+          {datos.length > 0 ? (
+            datos.map((d) => <DatoCopiable key={d.etiqueta} etiqueta={d.etiqueta} valor={d.valor} />)
+          ) : (
+            <p className="py-6 text-sm text-dim">
+              Todavía no cargamos los datos de transferencia. Escríbenos por Instagram.
+            </p>
+          )}
+        </div>
+
+        {qr && (
+          <figure className="flex flex-col items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={qr}
+              alt="QR de cobro de Tenpo"
+              className="h-44 w-44 rounded-[12px] border border-line bg-white object-contain p-2"
+            />
+            <figcaption className="dato text-[0.65rem] tracking-[0.14em] text-faint uppercase">
+              Escanéalo desde Tenpo
+            </figcaption>
+          </figure>
+        )}
+      </div>
+
+      <p className="mt-6 flex items-start gap-2.5 rounded-[10px] border border-line bg-white/[0.02] px-4 py-3 text-sm leading-relaxed text-dim">
+        <Info size={15} className="mt-0.5 shrink-0 text-cyan" />
+        Tenpo no nos avisa automáticamente cuando llega una transferencia, así que revisamos cada
+        comprobante a mano. Por eso te pedimos la captura.
+      </p>
     </>
   );
 }

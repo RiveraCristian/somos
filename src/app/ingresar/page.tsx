@@ -49,7 +49,7 @@ export default async function PaginaIngresar({
 
         <div className="relative z-10">
           <Link href="/" aria-label="SOMOS — inicio">
-            <Logo alto={38} />
+            <Logo alto={72} />
           </Link>
 
           <h1 className="titulo-display mt-9 max-w-md text-4xl sm:text-5xl">

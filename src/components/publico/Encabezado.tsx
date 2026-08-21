@@ -14,7 +14,9 @@ export function Encabezado() {
     <header className="sticky top-0 z-40 border-b border-line bg-void/70 backdrop-blur-xl">
       <div className="contenedor flex h-16 items-center justify-between gap-6">
         <Link href="/" className="shrink-0" aria-label="SOMOS — inicio">
-          <Logo alto={26} />
+          {/* Las letras ocupan poco mas de la mitad del alto del chevron, asi
+              que el logo necesita mas altura que un wordmark para leerse. */}
+          <Logo alto={38} />
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">

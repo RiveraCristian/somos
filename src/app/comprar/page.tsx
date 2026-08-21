@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 
 import { Encabezado } from '@/components/publico/Encabezado';
 import { PiePagina } from '@/components/publico/PiePagina';
 import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
+import { etapaVigente } from '@/lib/etapas';
+import { pasarelaActiva } from '@/lib/pasarela';
+import { pesos } from '@/lib/formato';
 
 import { FormularioCompra, type TipoElegible } from './FormularioCompra';
 
@@ -34,13 +37,18 @@ export default async function PaginaComprar({
     );
   }
 
-  const cupos = await cuposPorTipo(evento.eventoId);
+  const [cupos, etapa] = await Promise.all([
+    cuposPorTipo(evento.eventoId),
+    etapaVigente(evento.eventoId, evento.eventoFechaInicio),
+  ]);
 
   const tipos: TipoElegible[] = evento.tiposEntrada.map((t) => ({
     id: t.tipoEntradaId,
     nombre: t.tipoEntradaNombre,
     descripcion: t.tipoEntradaDescripcion,
-    precio: t.tipoEntradaPrecio,
+    // El precio lo manda la etapa vigente; el del tipo queda solo de respaldo
+    // por si el evento todavia no tiene etapas configuradas.
+    precio: etapa?.precio ?? t.tipoEntradaPrecio,
     color: t.tipoEntradaColor,
     restantes:
       t.tipoEntradaCupo !== null
@@ -69,10 +77,31 @@ export default async function PaginaComprar({
             <p className="eyebrow">Paso 1 de 2</p>
             <h1 className="titulo-display mt-3 text-4xl sm:text-5xl">Compra tu entrada</h1>
             <p className="mt-4 leading-relaxed text-dim">
-              Elige tu entrada y déjanos tus datos. En el paso siguiente te mostramos cómo pagarla
-              por Tenpo para que te emitamos el QR.
+              {tipos.length === 1 ? 'Déjanos tus datos' : 'Elige tu entrada y déjanos tus datos'}
+              {pasarelaActiva()
+                ? '. En el paso siguiente la pagas y te emitimos el QR al tiro.'
+                : '. En el paso siguiente te mostramos cómo pagarla por transferencia para que te emitamos el QR.'}
             </p>
           </header>
+
+          <div className="mb-6 flex items-start gap-3 rounded-[12px] border border-[rgba(178,102,255,0.28)] bg-[rgba(178,102,255,0.06)] px-5 py-4">
+            <Lock size={17} className="mt-0.5 shrink-0 text-violeta" />
+            <div className="text-sm leading-relaxed text-dim">
+              <p className="font-medium text-ink">Solo por invitación</p>
+              <p className="mt-1">
+                Verificamos tu teléfono contra la lista de invitados. Cada número puede
+                sacar hasta dos entradas, y cada entrada va a nombre de una persona con
+                su propio correo.
+                {etapa?.restantes ? (
+                  <>
+                    {' '}
+                    Quedan <strong className="text-ink">{etapa.restantes}</strong> a{' '}
+                    {pesos(etapa.precio)}.
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </div>
 
           <div className="tarjeta p-7 sm:p-9">
             <FormularioCompra tipos={tipos} tipoInicialId={tipoInicial} />

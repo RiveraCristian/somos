@@ -72,12 +72,18 @@ const ESTILO_TARJETA = `
 `;
 
 function envoltorio(contenido: string): string {
+  const base = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="${ESTILO_BASE}">
   <div style="${ESTILO_TARJETA}">
     <div style="height:4px;background:linear-gradient(90deg,#00F0FF,#7B5CFF 52%,#FF2E9A);"></div>
-    <div style="padding:32px 28px;">
+    <div style="padding:28px 28px 0;text-align:center;">
+      <img src="${base}/logo.png" alt="SOMOS" width="132" height="93"
+           style="display:inline-block;width:132px;height:auto;border:0;">
+    </div>
+    <div style="padding:24px 28px 32px;">
       ${contenido}
     </div>
   </div>

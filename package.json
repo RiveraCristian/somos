@@ -4,7 +4,7 @@
   "private": true,
   "description": "SOMOS — sitio del evento, venta de entradas por aporte y validacion de acceso en puerta",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3100",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -12,16 +12,21 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "logo": "node scripts/procesar-logo.mjs",
+    "vitrina": "node scripts/construir-vitrina.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@fintoc/fintoc-js": "^1.1.2",
+    "@mercadopago/sdk-react": "^1.0.7",
     "@prisma/client": "^6.16.2",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "bcryptjs": "^3.0.2",
+    "framer-motion": "^13.1.1",
     "jose": "^6.1.0",
     "lucide-react": "^0.544.0",
     "next": "^15.5.4",
