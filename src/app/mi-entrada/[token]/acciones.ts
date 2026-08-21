@@ -143,7 +143,7 @@ export async function iniciarPagoEnLinea(
   } catch (e) {
     console.error('[fintoc] no se pudo crear la sesion de pago:', e);
     return {
-      error: 'No pudimos abrir el pago en línea. Puedes transferir por Tenpo y subir el comprobante.',
+      error: 'No pudimos abrir el pago en línea. Puedes transferir a nuestra cuenta y subir el comprobante.',
     };
   }
 }
@@ -191,7 +191,7 @@ export async function cobrarConBrick(
     console.error('[mercadopago] fallo el cobro:', e);
     return {
       estado: 'error',
-      mensaje: 'No pudimos procesar el pago. Intenta de nuevo o transfiere por Tenpo.',
+      mensaje: 'No pudimos procesar el pago. Intenta de nuevo o transfiere a nuestra cuenta.',
     };
   }
 
@@ -258,7 +258,7 @@ function mensajeDeRechazo(detalle?: string): string {
     cc_rejected_max_attempts: 'Demasiados intentos. Prueba con otra tarjeta.',
   };
 
-  return mapa[detalle ?? ''] ?? 'El pago fue rechazado. Prueba con otra tarjeta o transfiere por Tenpo.';
+  return mapa[detalle ?? ''] ?? 'El pago fue rechazado. Prueba con otra tarjeta o transfiere a nuestra cuenta.';
 }
 
 // ---------------------------------------------------------------------------

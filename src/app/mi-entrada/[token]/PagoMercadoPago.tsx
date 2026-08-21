@@ -34,7 +34,7 @@ export function PagoMercadoPago({ token, monto, clavePublica, correo }: Props) {
         console.error('[mercadopago] no se pudo cargar el SDK:', e);
         setResultado({
           estado: 'error',
-          mensaje: 'No pudimos cargar el formulario de pago. Transfiere por Tenpo más abajo.',
+          mensaje: 'No pudimos cargar el formulario de pago. Transfiere a la cuenta de más abajo.',
         });
       }
     })();

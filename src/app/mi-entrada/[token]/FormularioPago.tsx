@@ -87,7 +87,7 @@ export function FormularioPago({ token, precio, saldoPendiente }: Props) {
           <label className="campo-label" htmlFor="metodo">
             Cómo lo pagaste
           </label>
-          <select id="metodo" name="metodo" className="campo-select" defaultValue="tenpo">
+          <select id="metodo" name="metodo" className="campo-select" defaultValue="transferencia">
             {METODOS_DECLARABLES.map((m) => (
               <option key={m} value={m}>
                 {ETIQUETAS_METODO[m]}

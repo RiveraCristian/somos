@@ -74,13 +74,13 @@ export default async function PaginaEvento() {
             capacidad: String(evento.eventoCapacidad ?? ''),
             estado: evento.eventoEstado,
             instagram: evento.eventoInstagram ?? '',
-            tenpoNombre: evento.eventoTenpoNombre ?? '',
-            tenpoRut: evento.eventoTenpoRut ?? '',
-            tenpoCorreo: evento.eventoTenpoCorreo ?? '',
-            tenpoBanco: evento.eventoTenpoBanco ?? '',
-            tenpoTipoCuenta: evento.eventoTenpoTipoCuenta ?? '',
-            tenpoCuenta: evento.eventoTenpoCuenta ?? '',
-            tenpoQrUrl: evento.eventoTenpoQrUrl ?? '',
+            cuentaNombre: evento.eventoCuentaNombre ?? '',
+            cuentaRut: evento.eventoCuentaRut ?? '',
+            cuentaCorreo: evento.eventoCuentaCorreo ?? '',
+            cuentaBanco: evento.eventoCuentaBanco ?? '',
+            cuentaTipo: evento.eventoCuentaTipo ?? '',
+            cuentaNumero: evento.eventoCuentaNumero ?? '',
+            cuentaQrUrl: evento.eventoCuentaQrUrl ?? '',
           }}
         />
       </section>

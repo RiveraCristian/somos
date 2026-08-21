@@ -7,10 +7,10 @@ import {
   ChevronDown,
   Clock3,
   Info,
+  Landmark,
   Loader2,
   QrCode,
   ShieldCheck,
-  Smartphone,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -78,13 +78,13 @@ export default async function PaginaMiEntrada({
   const enLinea = pasarela !== null;
   const activa = asistente.asistenteEstado !== 'anulado' && evento.eventoEstado !== 'finalizado';
 
-  const datosTenpo = [
-    { etiqueta: 'Titular', valor: evento.eventoTenpoNombre },
-    { etiqueta: 'RUT', valor: evento.eventoTenpoRut },
-    { etiqueta: 'Banco', valor: evento.eventoTenpoBanco },
-    { etiqueta: 'Tipo de cuenta', valor: evento.eventoTenpoTipoCuenta },
-    { etiqueta: 'N° de cuenta', valor: evento.eventoTenpoCuenta },
-    { etiqueta: 'Correo', valor: evento.eventoTenpoCorreo },
+  const datosCuenta = [
+    { etiqueta: 'Titular', valor: evento.eventoCuentaNombre },
+    { etiqueta: 'RUT', valor: evento.eventoCuentaRut },
+    { etiqueta: 'Banco', valor: evento.eventoCuentaBanco },
+    { etiqueta: 'Tipo de cuenta', valor: evento.eventoCuentaTipo },
+    { etiqueta: 'N° de cuenta', valor: evento.eventoCuentaNumero },
+    { etiqueta: 'Correo', valor: evento.eventoCuentaCorreo },
   ].filter((d): d is { etiqueta: string; valor: string } => Boolean(d.valor));
 
   return (
@@ -254,8 +254,8 @@ export default async function PaginaMiEntrada({
                 <details className="group">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
                     <span className="flex items-center gap-3">
-                      <Smartphone size={19} className="text-violeta" />
-                      <span className="titulo-display text-xl">Prefiero transferir por Tenpo</span>
+                      <Landmark size={19} className="text-violeta" />
+                      <span className="titulo-display text-xl">Prefiero transferir por mi cuenta</span>
                     </span>
                     <ChevronDown
                       size={18}
@@ -264,8 +264,8 @@ export default async function PaginaMiEntrada({
                   </summary>
                   <div className="pt-6">
                     <TransferenciaManual
-                      datos={datosTenpo}
-                      qr={evento.eventoTenpoQrUrl}
+                      datos={datosCuenta}
+                      qr={evento.eventoCuentaQrUrl}
                       saldo={saldo}
                     />
                     <div className="regla my-8" />
@@ -279,13 +279,13 @@ export default async function PaginaMiEntrada({
               ) : (
                 <>
                   <div className="flex items-center gap-3">
-                    <Smartphone size={19} className="text-violeta" />
-                    <h2 className="titulo-display text-xl">Paga por Tenpo</h2>
+                    <Landmark size={19} className="text-violeta" />
+                    <h2 className="titulo-display text-xl">Paga por transferencia</h2>
                   </div>
                   <div className="pt-6">
                     <TransferenciaManual
-                      datos={datosTenpo}
-                      qr={evento.eventoTenpoQrUrl}
+                      datos={datosCuenta}
+                      qr={evento.eventoCuentaQrUrl}
                       saldo={saldo}
                     />
                     <div className="regla my-8" />
@@ -383,11 +383,11 @@ function TransferenciaManual({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={qr}
-              alt="QR de cobro de Tenpo"
+              alt="QR para transferir"
               className="h-44 w-44 rounded-[12px] border border-line bg-white object-contain p-2"
             />
             <figcaption className="dato text-[0.65rem] tracking-[0.14em] text-faint uppercase">
-              Escanéalo desde Tenpo
+              Escanéalo desde tu banco
             </figcaption>
           </figure>
         )}
@@ -395,8 +395,9 @@ function TransferenciaManual({
 
       <p className="mt-6 flex items-start gap-2.5 rounded-[10px] border border-line bg-white/[0.02] px-4 py-3 text-sm leading-relaxed text-dim">
         <Info size={15} className="mt-0.5 shrink-0 text-cyan" />
-        Tenpo no nos avisa automáticamente cuando llega una transferencia, así que revisamos cada
-        comprobante a mano. Por eso te pedimos la captura.
+        Cuando transfieres por tu cuenta, el banco no nos avisa: revisamos cada comprobante a
+        mano. Por eso te pedimos la captura, y por eso tu entrada tarda un poco más que pagando
+        acá arriba.
       </p>
     </>
   );

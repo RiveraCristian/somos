@@ -1,8 +1,8 @@
 # SOMOS
 
 Sitio del evento **SOMOS**: fiesta de música electrónica. La gente compra su entrada,
-paga —por transferencia en línea o transfiriendo por Tenpo y subiendo el comprobante— y
-recibe un QR de un solo uso que se quema en la puerta.
+paga —con Fintoc desde la misma página, o transfiriendo por su cuenta y subiendo el
+comprobante— y recibe un QR de un solo uso que se quema en la puerta.
 
 Todo corre en **un solo servicio** (Next.js 15: frontend, API y Prisma en el mismo
 proceso). PostgreSQL vive **fuera** de Docker.
@@ -59,8 +59,8 @@ cobro vuelve a mirar el precio vigente.
 2. **Paga**, por uno de dos caminos:
    - **En línea sin salir del sitio** (si hay pasarela configurada): transferencia
      bancaria con Fintoc o tarjeta con Mercado Pago. Se confirma solo.
-   - **Transferencia manual por Tenpo**: transfiere y sube la captura. Queda
-     *pendiente* hasta que alguien la revise.
+   - **Transferencia manual**: transfiere a la cuenta del organizador y sube la
+     captura. Queda *pendiente* hasta que alguien la revise.
 3. **Se emite la entrada**: automáticamente al confirmarse el cobro en línea, o
    cuando tú apruebas el comprobante en `/admin/pagos`. Ahí se genera el QR y se
    manda por correo.
@@ -70,11 +70,10 @@ cobro vuelve a mirar el precio vigente.
 Puede pagar en más de una transferencia: cada pago confirmado se suma a su total y la
 entrada se emite con el primero.
 
-> **Sobre Tenpo.** Las transferencias entre tenpistas son un producto P2P de la app y
-> **no tienen API pública**: ningún sitio web puede enterarse automáticamente de que
-> llegó una transferencia. Por eso ese camino es *comprobante + confirmación manual*.
-> Para cobro automático está Fintoc (sección 4), que es justamente el motor detrás del
-> Link de Pago de Tenpo Business.
+> **Por qué el camino manual necesita comprobante.** Un banco no le avisa a un sitio
+> web cuando le llega una transferencia: no hay forma de enterarse solo. Por eso ese
+> camino es *captura + confirmación a mano*. El cobro automático es Fintoc (sección 4):
+> ahí es la propia pasarela la que confirma que el dinero se movió.
 
 ---
 
@@ -139,10 +138,11 @@ Las dos primeras usan la contraseña de `ADMIN_SEED_PASSWORD`. **Cámbiala.**
 Entra a `/admin/evento` y completa:
 
 1. **Fecha, hora y lugar** — el seed los deja vacíos y el sitio muestra "por confirmar".
-2. **Datos de transferencia de Tenpo** — titular, RUT, banco, tipo y número de cuenta.
-   Es lo que ve cada comprador para pagarte; sin esto nadie puede completar su compra.
-3. **QR de cobro de Tenpo** (opcional pero recomendado) — expórtalo desde la app,
-   déjalo en `public/tenpo-qr.png` y pon `/tenpo-qr.png` en el campo correspondiente.
+2. **Cuenta bancaria de respaldo** — titular, RUT, banco, tipo y número de cuenta. No es
+   por donde cobra Fintoc (eso se configura en el panel de Fintoc): es la cuenta que ve
+   quien no pudo usar el widget y prefiere transferir por su cuenta.
+3. **QR de transferencia** (opcional) — si tu banco genera uno, déjalo en `public/` y
+   pon su ruta en el campo correspondiente.
 4. **Precios y cupos** de cada tipo de entrada.
 5. **Line-up y preguntas frecuentes** — reemplaza los tres "Por confirmar" del seed.
 6. **La lista de invitados** en `/admin/invitados`. El seed deja un solo número de
@@ -366,7 +366,7 @@ Sigue las convenciones de `CLAUDE.md`: identificadores `snake_case` con formato
 |---|---|
 | `usuarios` | Staff. Password nullable y columnas de proveedor, listas para Google SSO |
 | `sesiones` | Tokens de sesión hasheados, revocables |
-| `eventos` | El evento, incluidos los datos de cobro de Tenpo |
+| `eventos` | El evento, incluida la cuenta bancaria de respaldo |
 | `tipos_entrada` | Preventa / General / VIP: precio, cupo, color |
 | `artistas` | Line-up |
 | `preguntas_frecuentes` | FAQ del sitio |

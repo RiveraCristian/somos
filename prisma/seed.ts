@@ -99,13 +99,15 @@ async function main() {
       eventoWhatsapp: null,
 
       // Datos de cobro: reemplazalos por los tuyos desde /admin/evento.
-      eventoTenpoNombre: 'Nombre del organizador',
-      eventoTenpoRut: '12.345.678-9',
-      eventoTenpoCorreo: 'organizador@correo.cl',
-      eventoTenpoBanco: 'Tenpo',
-      eventoTenpoTipoCuenta: 'Cuenta Vista',
-      eventoTenpoCuenta: '000000000000',
-      eventoTenpoQrUrl: null,
+      // Cuenta de respaldo, para quien transfiere por su cuenta en vez de usar
+      // el widget. El cobro normal va por Fintoc y deposita donde diga su panel.
+      eventoCuentaNombre: 'Nombre del organizador',
+      eventoCuentaRut: '12.345.678-9',
+      eventoCuentaCorreo: 'organizador@correo.cl',
+      eventoCuentaBanco: 'Banco de Chile',
+      eventoCuentaTipo: 'Cuenta Corriente',
+      eventoCuentaNumero: '000000000000',
+      eventoCuentaQrUrl: null,
 
       createdBy: USUARIO_SISTEMA_ID,
     },
@@ -267,10 +269,10 @@ async function main() {
           preguntaEventoId: evento.eventoId,
           preguntaTexto: '¿Cómo compro mi entrada?',
           preguntaRespuesta:
-            'Eliges tu entrada y dejas tus datos. Después la pagas por transferencia: si está ' +
-            'habilitado el pago en línea, eliges tu banco y apruebas sin salir de la página. ' +
-            'Si no, transfieres por Tenpo y subes la captura. En ambos casos te llega tu ' +
-            'entrada con QR al correo.',
+            'Eliges tu entrada y dejas tus datos. Después la pagas con Fintoc: eliges tu banco ' +
+            'y apruebas la transferencia sin salir de la página. Si tu banco no aparece o algo ' +
+            'falla, puedes transferir por tu cuenta y subir la captura. En ambos casos te llega ' +
+            'tu entrada con QR al correo.',
           preguntaOrden: 1,
           createdBy: USUARIO_SISTEMA_ID,
         },
@@ -278,10 +280,10 @@ async function main() {
           preguntaEventoId: evento.eventoId,
           preguntaTexto: '¿Es seguro pagar acá?',
           preguntaRespuesta:
-            'El pago en línea te conecta directamente con tu banco: nosotros nunca vemos tus ' +
-            'claves ni los datos de tu cuenta. Si transfieres por Tenpo en vez de eso, te ' +
-            'pedimos la captura porque Tenpo no le avisa a un sitio web cuando llega una ' +
-            'transferencia, así que la revisamos a mano.',
+            'Sí. Fintoc te conecta directamente con tu banco: nosotros nunca vemos tus claves ' +
+            'ni los datos de tu cuenta, y la transferencia la autorizas tú en el sitio de tu ' +
+            'banco. Si prefieres transferir por tu cuenta, te pedimos la captura porque el ' +
+            'banco no le avisa a un sitio web cuando llega el dinero.',
           preguntaOrden: 2,
           createdBy: USUARIO_SISTEMA_ID,
         },

@@ -26,7 +26,6 @@ export const ESTADOS_PAGO = ['pendiente', 'confirmado', 'rechazado'] as const;
 export type EstadoPago = (typeof ESTADOS_PAGO)[number];
 
 export const METODOS_PAGO = [
-  'tenpo',
   'transferencia',
   'efectivo',
   'fintoc',
@@ -36,13 +35,12 @@ export const METODOS_PAGO = [
 export type MetodoPago = (typeof METODOS_PAGO)[number];
 
 /** Los de pasarela no se ofrecen en el formulario manual: los pone el cobro en linea. */
-export const METODOS_DECLARABLES = ['tenpo', 'transferencia', 'efectivo', 'otro'] as const;
+export const METODOS_DECLARABLES = ['transferencia', 'efectivo', 'otro'] as const;
 
 export const ETIQUETAS_METODO: Record<MetodoPago, string> = {
-  tenpo: 'Tenpo',
   transferencia: 'Transferencia bancaria',
   efectivo: 'Efectivo',
-  fintoc: 'Transferencia en línea',
+  fintoc: 'Transferencia con Fintoc',
   mercadopago: 'Tarjeta (Mercado Pago)',
   otro: 'Otro',
 };

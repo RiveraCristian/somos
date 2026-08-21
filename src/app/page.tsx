@@ -42,11 +42,11 @@ function pasos(enLinea: boolean) {
           icono: <Zap size={18} />,
           titulo: 'Pagas ahí mismo',
           texto:
-            'Eliges tu banco y apruebas la transferencia sin salir de la página. Si prefieres, también puedes transferir por Tenpo y subir la captura.',
+            'Eliges tu banco y apruebas la transferencia sin salir de la página, con Fintoc. Si prefieres, también puedes transferir por tu cuenta y subir la captura.',
         }
       : {
           icono: <Upload size={18} />,
-          titulo: 'Pagas por Tenpo',
+          titulo: 'Pagas por transferencia',
           texto:
             'Transfieres el valor de tu entrada a nuestra cuenta y subes la captura de la transferencia.',
         },

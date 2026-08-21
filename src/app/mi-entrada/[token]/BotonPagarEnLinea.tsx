@@ -165,7 +165,7 @@ export function BotonPagarEnLinea({ token, monto, clavePublica }: Props) {
       )}
 
       {/* Plan B. Con ui_mode embedded Fintoc no devuelve link alojado, asi que
-          en la practica cae al mensaje de mas abajo: transferir por Tenpo. */}
+          en la practica cae al mensaje de mas abajo: transferir por cuenta propia. */}
       {falloWidget && estado.urlRespaldo && (
         <a
           href={estado.urlRespaldo}
@@ -180,7 +180,7 @@ export function BotonPagarEnLinea({ token, monto, clavePublica }: Props) {
 
       {falloWidget && !estado.urlRespaldo && (
         <p className="text-sm text-alerta">
-          No pudimos abrir el pago acá. Transfiere por Tenpo y sube el comprobante más abajo.
+          No pudimos abrir el pago acá. Transfiere a la cuenta de más abajo y sube el comprobante.
         </p>
       )}
     </div>

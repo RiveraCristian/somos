@@ -19,13 +19,13 @@ export type DatosEvento = {
   capacidad: string;
   estado: string;
   instagram: string;
-  tenpoNombre: string;
-  tenpoRut: string;
-  tenpoCorreo: string;
-  tenpoBanco: string;
-  tenpoTipoCuenta: string;
-  tenpoCuenta: string;
-  tenpoQrUrl: string;
+  cuentaNombre: string;
+  cuentaRut: string;
+  cuentaCorreo: string;
+  cuentaBanco: string;
+  cuentaTipo: string;
+  cuentaNumero: string;
+  cuentaQrUrl: string;
 };
 
 const ESTADOS = [
@@ -233,41 +233,42 @@ export function FormularioEvento({ datos }: { datos: DatosEvento }) {
 
       <hr className="regla" />
 
-      {/* ----------------------------------------------------------- Tenpo */}
+      {/* -------------------------------------------- Cuenta de respaldo */}
       <fieldset className="flex flex-col gap-5">
         <legend className="dato mb-1 text-[0.65rem] tracking-[0.18em] text-faint uppercase">
-          Datos para recibir los pagos
+          Cuenta para transferencias manuales
         </legend>
 
         <p className="mb-2 text-sm leading-relaxed text-dim">
-          Esto es lo que ve cada comprador en su página privada para transferirte. Tenpo no expone
-          una API que avise cuando llega una transferencia, así que la confirmación siempre pasa
-          por revisar el comprobante acá.
+          El cobro normal va por Fintoc y no pasa por acá: Fintoc deposita solo en la cuenta que
+          tengas configurada en su panel. Esta cuenta es el camino de respaldo, el que ve quien no
+          pudo usar el widget y prefiere transferir por su cuenta. Como el banco no avisa cuando
+          llega una transferencia, esos pagos los confirmas tú revisando el comprobante.
         </p>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="campo">
-            <label className="campo-label" htmlFor="tenpoNombre">
+            <label className="campo-label" htmlFor="cuentaNombre">
               Titular de la cuenta
             </label>
             <input
-              id="tenpoNombre"
-              name="tenpoNombre"
+              id="cuentaNombre"
+              name="cuentaNombre"
               maxLength={200}
-              defaultValue={datos.tenpoNombre}
+              defaultValue={datos.cuentaNombre}
               className="campo-input"
             />
           </div>
 
           <div className="campo">
-            <label className="campo-label" htmlFor="tenpoRut">
+            <label className="campo-label" htmlFor="cuentaRut">
               RUT
             </label>
             <input
-              id="tenpoRut"
-              name="tenpoRut"
+              id="cuentaRut"
+              name="cuentaRut"
               maxLength={20}
-              defaultValue={datos.tenpoRut}
+              defaultValue={datos.cuentaRut}
               className="campo-input dato"
               placeholder="12.345.678-9"
             />
@@ -276,42 +277,42 @@ export function FormularioEvento({ datos }: { datos: DatosEvento }) {
 
         <div className="grid gap-5 sm:grid-cols-3">
           <div className="campo">
-            <label className="campo-label" htmlFor="tenpoBanco">
+            <label className="campo-label" htmlFor="cuentaBanco">
               Banco
             </label>
             <input
-              id="tenpoBanco"
-              name="tenpoBanco"
+              id="cuentaBanco"
+              name="cuentaBanco"
               maxLength={120}
-              defaultValue={datos.tenpoBanco}
+              defaultValue={datos.cuentaBanco}
               className="campo-input"
-              placeholder="Tenpo"
+              placeholder="Banco de Chile"
             />
           </div>
 
           <div className="campo">
-            <label className="campo-label" htmlFor="tenpoTipoCuenta">
+            <label className="campo-label" htmlFor="cuentaTipo">
               Tipo de cuenta
             </label>
             <input
-              id="tenpoTipoCuenta"
-              name="tenpoTipoCuenta"
+              id="cuentaTipo"
+              name="cuentaTipo"
               maxLength={60}
-              defaultValue={datos.tenpoTipoCuenta}
+              defaultValue={datos.cuentaTipo}
               className="campo-input"
               placeholder="Cuenta Vista"
             />
           </div>
 
           <div className="campo">
-            <label className="campo-label" htmlFor="tenpoCuenta">
+            <label className="campo-label" htmlFor="cuentaNumero">
               N° de cuenta
             </label>
             <input
-              id="tenpoCuenta"
-              name="tenpoCuenta"
+              id="cuentaNumero"
+              name="cuentaNumero"
               maxLength={50}
-              defaultValue={datos.tenpoCuenta}
+              defaultValue={datos.cuentaNumero}
               className="campo-input dato"
             />
           </div>
@@ -319,33 +320,33 @@ export function FormularioEvento({ datos }: { datos: DatosEvento }) {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="campo">
-            <label className="campo-label" htmlFor="tenpoCorreo">
+            <label className="campo-label" htmlFor="cuentaCorreo">
               Correo asociado
             </label>
             <input
-              id="tenpoCorreo"
-              name="tenpoCorreo"
+              id="cuentaCorreo"
+              name="cuentaCorreo"
               type="email"
               maxLength={255}
-              defaultValue={datos.tenpoCorreo}
+              defaultValue={datos.cuentaCorreo}
               className="campo-input"
             />
           </div>
 
           <div className="campo">
-            <label className="campo-label" htmlFor="tenpoQrUrl">
+            <label className="campo-label" htmlFor="cuentaQrUrl">
               Imagen del QR de cobro
             </label>
             <input
-              id="tenpoQrUrl"
-              name="tenpoQrUrl"
+              id="cuentaQrUrl"
+              name="cuentaQrUrl"
               maxLength={500}
-              defaultValue={datos.tenpoQrUrl}
+              defaultValue={datos.cuentaQrUrl}
               className="campo-input"
-              placeholder="/tenpo-qr.png"
+              placeholder="/qr-transferencia.png"
             />
             <span className="campo-ayuda">
-              Exporta el QR desde la app de Tenpo, déjalo en <code>public/</code> y pon acá su ruta.
+              Opcional. Si tu banco genera un QR para transferir, déjalo en <code>public/</code> y pon acá su ruta.
             </span>
           </div>
         </div>

@@ -192,7 +192,7 @@ export function plantillaRegistro(datos: {
     <h1 style="margin:0 0 14px;font-size:28px;line-height:1.15;">Falta un paso para ${datos.evento}</h1>
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#B7C0D6;">
       ${datos.nombre}, te reservamos una entrada <strong style="color:#EAF0FF;">${datos.tipoEntrada}</strong>
-      de <strong style="color:#EAF0FF;">${pesos(datos.precio)}</strong>. Transfiere por Tenpo y sube el
+      de <strong style="color:#EAF0FF;">${pesos(datos.precio)}</strong>. Entra a tu página y págala con tu banco, o transfiere y sube el
       comprobante para que emitamos tu QR.
     </p>
     <a href="${datos.url}"

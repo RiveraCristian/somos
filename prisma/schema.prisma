@@ -116,15 +116,18 @@ model Evento {
   eventoInstagram    String?   @map("evento_instagram") @db.VarChar(120)
   eventoWhatsapp     String?   @map("evento_whatsapp") @db.VarChar(60)
 
-  // --- Datos para recibir los aportes por Tenpo / transferencia -------------
-  eventoTenpoNombre     String? @map("evento_tenpo_nombre") @db.VarChar(200)
-  eventoTenpoRut        String? @map("evento_tenpo_rut") @db.VarChar(20)
-  eventoTenpoCorreo     String? @map("evento_tenpo_correo") @db.VarChar(255)
-  eventoTenpoBanco      String? @map("evento_tenpo_banco") @db.VarChar(120)
-  eventoTenpoTipoCuenta String? @map("evento_tenpo_tipo_cuenta") @db.VarChar(60)
-  eventoTenpoCuenta     String? @map("evento_tenpo_cuenta") @db.VarChar(50)
-  /// Imagen del QR de cobro que genera la app de Tenpo (ruta en /public o URL).
-  eventoTenpoQrUrl      String? @map("evento_tenpo_qr_url") @db.VarChar(500)
+  // --- Cuenta bancaria de respaldo ------------------------------------------
+  // El cobro normal va por Fintoc y no pasa por aca: Fintoc deposita solo en la
+  // cuenta configurada en su panel. Estos datos son para el camino manual, el
+  // de quien no puede usar el widget y transfiere por su cuenta.
+  eventoCuentaNombre String? @map("evento_cuenta_nombre") @db.VarChar(200)
+  eventoCuentaRut    String? @map("evento_cuenta_rut") @db.VarChar(20)
+  eventoCuentaCorreo String? @map("evento_cuenta_correo") @db.VarChar(255)
+  eventoCuentaBanco  String? @map("evento_cuenta_banco") @db.VarChar(120)
+  eventoCuentaTipo   String? @map("evento_cuenta_tipo") @db.VarChar(60)
+  eventoCuentaNumero String? @map("evento_cuenta_numero") @db.VarChar(50)
+  /// QR de transferencia, si el banco o la app del titular genera uno.
+  eventoCuentaQrUrl  String? @map("evento_cuenta_qr_url") @db.VarChar(500)
 
   createdBy  Int       @map("created_by")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -299,8 +302,8 @@ model Pago {
   pagoId          Int    @id @default(autoincrement()) @map("pago_id")
   pagoAsistenteId Int    @map("pago_asistente_id")
   pagoMonto       Int    @map("pago_monto")
-  /// tenpo | transferencia | efectivo | fintoc | mercadopago | otro
-  pagoMetodo      String @default("tenpo") @map("pago_metodo") @db.VarChar(30)
+  /// transferencia | efectivo | fintoc | mercadopago | otro
+  pagoMetodo      String @default("transferencia") @map("pago_metodo") @db.VarChar(30)
   /// pendiente | confirmado | rechazado
   pagoEstado      String @default("pendiente") @map("pago_estado") @db.VarChar(30)
   /// manual = alguien revisa el comprobante · fintoc / mercadopago = pasarela

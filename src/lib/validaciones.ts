@@ -70,13 +70,13 @@ export const esquemaEvento = z.object({
   capacidad: z.coerce.number().int().min(0).max(100_000).optional(),
   estado: z.enum(['borrador', 'publicado', 'cerrado', 'finalizado']),
   instagram: textoLimpio(120).optional().or(z.literal('')),
-  tenpoNombre: textoLimpio(200).optional().or(z.literal('')),
-  tenpoRut: textoLimpio(20).optional().or(z.literal('')),
-  tenpoCorreo: textoLimpio(255).optional().or(z.literal('')),
-  tenpoBanco: textoLimpio(120).optional().or(z.literal('')),
-  tenpoTipoCuenta: textoLimpio(60).optional().or(z.literal('')),
-  tenpoCuenta: textoLimpio(50).optional().or(z.literal('')),
-  tenpoQrUrl: textoLimpio(500).optional().or(z.literal('')),
+  cuentaNombre: textoLimpio(200).optional().or(z.literal('')),
+  cuentaRut: textoLimpio(20).optional().or(z.literal('')),
+  cuentaCorreo: textoLimpio(255).optional().or(z.literal('')),
+  cuentaBanco: textoLimpio(120).optional().or(z.literal('')),
+  cuentaTipo: textoLimpio(60).optional().or(z.literal('')),
+  cuentaNumero: textoLimpio(50).optional().or(z.literal('')),
+  cuentaQrUrl: textoLimpio(500).optional().or(z.literal('')),
 });
 
 /** Devuelve el primer mensaje de error legible de un ZodError. */
