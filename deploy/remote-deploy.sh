@@ -5,6 +5,12 @@
 # No se ejecuta a mano: el workflow lo manda por stdin precedido de las
 # variables SOMOS_IMAGE, GHCR_USER y GHCR_TOKEN. Van por stdin y no como
 # argumentos a proposito: los argumentos quedan a la vista en `ps`.
+#
+# OJO con stdin: como bash lee ESTE script desde ahi, cualquier comando que
+# tambien lea stdin se traga las lineas que bash todavia no leyo. Paso de
+# verdad: `docker compose run` se comio el seed, el `up -d` y el chequeo de
+# salud, y el despliegue termino en verde sin haber desplegado nada. Por eso
+# cada `run` lleva `-T` y `< /dev/null`.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -24,13 +30,13 @@ docker compose pull --quiet
 
 # Las migraciones corren ANTES de levantar la version nueva (CLAUDE.md 11.5.6).
 echo "==> Migraciones"
-docker compose run --rm --no-deps somos \
-  node prisma-cli/node_modules/prisma/build/index.js migrate deploy
+docker compose run --rm --no-deps -T somos \
+  node prisma-cli/node_modules/prisma/build/index.js migrate deploy < /dev/null
 
 # El seed es idempotente: todos sus upsert llevan `update: {}`, asi que
 # repetirlo no pisa lo que se haya editado desde el panel.
 echo "==> Seed"
-docker compose run --rm --no-deps somos node prisma/seed.js
+docker compose run --rm --no-deps -T somos node prisma/seed.js < /dev/null
 
 echo "==> Levantando la aplicacion"
 docker compose up -d --remove-orphans
@@ -39,6 +45,19 @@ docker compose up -d --remove-orphans
 # un eventual rollback no cabe. Se borra todo lo que no use el contenedor vivo;
 # si hay que volver atras, la version anterior sigue en GHCR y se vuelve a bajar.
 docker image prune -af >/dev/null
+
+# Que el contenedor este vivo no basta: si `up -d` no recreo nada, el de antes
+# sigue respondiendo sano y el despliegue pasa sin haber desplegado. Se compara
+# contra la imagen que se acaba de construir.
+esperada="$(docker image inspect "$SOMOS_IMAGE" --format '{{.Id}}')"
+enUso="$(docker inspect somos --format '{{.Image}}')"
+if [ "$esperada" != "$enUso" ]; then
+  echo "FALLO: el contenedor no quedo con la imagen nueva." >&2
+  echo "  esperada: $esperada" >&2
+  echo "  en uso:   $enUso" >&2
+  exit 1
+fi
+echo "El contenedor corre la imagen recien construida."
 
 echo "==> Esperando a que responda sana"
 for _ in $(seq 1 30); do
