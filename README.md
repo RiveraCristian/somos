@@ -520,33 +520,29 @@ real**: de ahí sale el contenido del QR y los links de los correos. Si queda en
 
 ---
 
-## 11. Portada pública en GitHub Pages
+## 11. Portada estática (sin publicar)
 
-El sitio completo necesita servidor y base de datos, así que no se puede servir desde
-Pages. Lo que sí se publica es la **portada**, para que la gente vea cómo va quedando:
+Ya **no se publica en GitHub Pages**: el sitio real está en línea, así que una vitrina
+aparte solo duplicaba contenido que se quedaba atrás. El workflow se eliminó.
+
+El generador sigue existiendo por si alguna vez hace falta una portada suelta —una
+landing sin servidor, una demo para mostrar sin dar acceso al panel:
 
 ```bash
 npm run vitrina     # deja la portada estática en .vitrina/out
 ```
 
-Cada push a `main` la publica solo, vía `.github/workflows/pages.yml`. Queda en
-`https://<usuario>.github.io/<repo>/`.
-
-**Para activarlo la primera vez**: en GitHub → *Settings* → *Pages* → *Source*, elegir
-**GitHub Actions**.
-
 Cómo funciona (`scripts/construir-vitrina.mjs`):
 
 - Arma una mini-aplicación Next en `.vitrina/` con **solo** la portada.
-- Esa portada es el mismo `src/app/page.tsx` del sitio real, no una copia: el diseño no
-  se puede quedar atrás.
+- Esa portada es el mismo `src/app/page.tsx` del sitio real, no una copia.
 - Compila con `MODO_VITRINA=1`, y ahí las funciones de datos devuelven el contenido de
   muestra de `src/lib/vitrina.ts` en vez de consultar Postgres.
-- Cualquier link a `/comprar` o `/admin` cae en un 404 propio que explica que es una
-  demo, en vez del 404 crudo de GitHub.
 
-> El aviso de **"sitio en desarrollo"** sale siempre en la vitrina. En el sitio real se
-> controla con `AVISO_DESARROLLO` (`off` para apagarlo el día que se publique de verdad).
+> Mientras esto exista, `src/lib/vitrina.ts` tiene que reflejar la forma del modelo
+> `Evento`: si se agrega un campo al esquema y la vitrina no lo acompaña, el build de la
+> portada falla. Si no se piensa usar, conviene borrar el generador, `vitrina.ts` y las
+> ramas `MODO_VITRINA` de `src/lib/datos.ts`.
 
 ---
 

@@ -34,6 +34,29 @@ jobs:
   desplegar:
     runs-on: ubuntu-latest
     steps:
+      # Va primero, antes del checkout y del build: construir la imagen toma
+      # varios minutos y sin esto el unico sintoma de un secreto vacio es un
+      # "Could not resolve hostname" con el nombre en blanco, al final de todo.
+      - name: Revisar que esten los secretos
+        env:
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DROPLET_SSH_KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          DROPLET_HOST_KEY: ${{ secrets.DROPLET_HOST_KEY }}
+        run: |
+          faltan=()
+          [ -n "$DROPLET_HOST" ]     || faltan+=(DROPLET_HOST)
+          [ -n "$DROPLET_SSH_KEY" ]  || faltan+=(DROPLET_SSH_KEY)
+          [ -n "$DROPLET_HOST_KEY" ] || faltan+=(DROPLET_HOST_KEY)
+
+          if [ ${#faltan[@]} -gt 0 ]; then
+            echo "::error::Faltan estos secretos: ${faltan[*]}"
+            echo "Cargalos en Settings > Secrets and variables > Actions."
+            echo "Tienen que estar en la pestana 'Secrets', NO en 'Variables':"
+            echo "una variable no se lee con secrets.* y llega vacia."
+            exit 1
+          fi
+          echo "Los tres secretos estan cargados."
+
       - uses: actions/checkout@v4
 
       # GHCR solo acepta nombres en minuscula y el usuario tiene mayusculas.
