@@ -421,6 +421,52 @@ npm run db:studio    # explorar la base en el navegador
 
 ## 9. Despliegue
 
+### Producción: droplet de DigitalOcean (el camino real)
+
+Cada push a `main` dispara `.github/workflows/deploy.yml`, que construye la
+imagen, la publica en GHCR y entra por SSH al droplet a bajarla. **El build no
+corre en el servidor**: tiene 1 vCPU y 458 MB de RAM y un build de Next.js ahí
+se queda sin memoria.
+
+```
+push a main
+  └─ GitHub Actions: docker build → ghcr.io/riveracristian/somos:<sha>
+      └─ ssh deploy@droplet
+          ├─ docker compose pull
+          ├─ prisma migrate deploy      (antes de levantar la versión nueva)
+          ├─ node prisma/seed.js        (idempotente: todo upsert con update:{})
+          ├─ docker compose up -d
+          └─ espera a que /api/salud responda "ok" o falla el despliegue
+```
+
+Piezas:
+
+| Archivo | Qué es |
+|---|---|
+| `deploy/bootstrap-droplet.sh` | Deja el servidor listo desde cero. Idempotente, se corre una vez como root. |
+| `deploy/docker-compose.prod.yml` | La composición que vive en `/opt/somos/docker-compose.yml`. |
+| `deploy/remote-deploy.sh` | Lo que se ejecuta dentro del servidor en cada despliegue. |
+
+Secretos en GitHub (`Settings › Secrets and variables › Actions`):
+`DROPLET_HOST`, `DROPLET_SSH_KEY` y `DROPLET_HOST_KEY`. Nada más. Los secretos de
+la aplicación —base de datos, JWT, Fintoc, Resend— **no pasan por CI**: viven solo
+en `/opt/somos/.env` con permisos 600, y el despliegue nunca los toca.
+
+La llave de host va fijada a propósito: si el servidor del otro lado no es el que
+esperamos, el despliegue falla en vez de entregarle la aplicación a otro. Si
+recreas el droplet hay que actualizar ese secreto.
+
+En el servidor, PostgreSQL corre **nativo**, no en Docker (CLAUDE.md §2.1). El
+contenedor lo alcanza por `host.docker.internal`; `ufw` deja el 5432 abierto solo
+para las redes de Docker, nunca hacia internet. El contenedor publica su puerto
+en `127.0.0.1:3000` y no en `0.0.0.0`: Docker escribe sus reglas de iptables antes
+que las de `ufw`, así que publicar hacia afuera lo expondría saltándose el
+firewall.
+
+Para el dominio: registro A hacia la IP y después `certbot --nginx -d tudominio.cl`.
+Certbot reescribe la config de nginx solo. Acuérdate de mover `APP_URL` al dominio
+con `https`, porque de ahí sale el contenido de los QR.
+
 ### Docker (un solo contenedor)
 
 ```bash

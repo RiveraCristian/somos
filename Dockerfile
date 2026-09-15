@@ -20,6 +20,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # `prisma generate` corre dentro del script `build` del package.json.
 RUN npm run build
 
+# El seed esta en TypeScript y `tsx` es una dependencia de desarrollo: no llega
+# a la imagen final. Se transpila aqui, donde si existe el compilador, para que
+# el runtime pueda sembrar con `node prisma/seed.js` sin arrastrar devDeps.
+RUN ./node_modules/.bin/tsc prisma/seed.ts --outDir /seed --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck
+
 # --- 3. Runtime -------------------------------------------------------------
 FROM node:22-alpine AS runner
 RUN apk add --no-cache openssl
@@ -41,9 +46,16 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Prisma CLI + schema + migraciones, para poder correr `migrate deploy` al arrancar.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /seed/seed.js ./prisma/seed.js
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
+
+# El seed corre fuera del bundle de Next, asi que no puede depender de lo que
+# el trazado de `standalone` haya decidido incluir: sus dos dependencias se
+# copian explicitamente. `.prisma` es el cliente generado, sin el no hay query.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bcryptjs ./node_modules/bcryptjs
 
 RUN mkdir -p /app/data/comprobantes && chown -R nextjs:nodejs /app/data
 

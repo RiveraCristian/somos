@@ -1,0 +1,5 @@
+# Los scripts del servidor corren en Linux: nunca con finales de linea CRLF,
+# que rompen el shebang y dejan errores imposibles de leer.
+*.sh text eol=lf
+*.yml text eol=lf
+Dockerfile text eol=lf

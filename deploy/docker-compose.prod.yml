@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------------
+# SOMOS — composicion de produccion en el droplet.
+#
+# Este archivo lo copia el workflow a /opt/somos/docker-compose.yml en cada
+# despliegue. La app NO se construye aqui: la imagen llega ya hecha desde
+# GitHub Actions (ghcr.io). El droplet tiene 1 vCPU y 458 MB de RAM y un build
+# de Next.js no cabe.
+#
+# PostgreSQL corre NATIVO en el host y se alcanza por host.docker.internal
+# (CLAUDE.md: la base nunca va en Docker).
+# ---------------------------------------------------------------------------
+services:
+  somos:
+    image: ${SOMOS_IMAGE:-ghcr.io/riveracristian/somos:latest}
+    container_name: somos
+    restart: unless-stopped
+
+    # Solo en el loopback: delante va nginx, que es quien atiende el 80/443.
+    # Publicarlo en 0.0.0.0 ademas lo expondria saltandose ufw, porque Docker
+    # escribe sus reglas antes que las del firewall.
+    ports:
+      - '127.0.0.1:3000:3000'
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      UPLOADS_DIR: /app/data/comprobantes
+
+    volumes:
+      # Los comprobantes de transferencia sobreviven a los redeploys.
+      - somos_comprobantes:/app/data/comprobantes
+
+    extra_hosts:
+      # Deja que el contenedor alcance el PostgreSQL del host.
+      - 'host.docker.internal:host-gateway'
+
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+    # El disco son 8.7 GB: sin tope, los logs se lo comen solos.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  somos_comprobantes:

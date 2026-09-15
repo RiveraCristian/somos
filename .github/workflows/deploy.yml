@@ -1,0 +1,95 @@
+name: Desplegar en el droplet
+
+# Construye la imagen en GitHub Actions, la publica en GHCR y el droplet solo
+# hace `pull`. El servidor tiene 1 vCPU y 458 MB de RAM: un build de Next.js
+# ahi se queda sin memoria, por eso el build vive aca.
+#
+# Secretos que necesita (Settings › Secrets and variables › Actions):
+#   DROPLET_HOST      IP o dominio del droplet
+#   DROPLET_SSH_KEY   llave privada del usuario `deploy` (ed25519, sin passphrase)
+#   DROPLET_HOST_KEY  llave publica de host del droplet, para no confiar a ciegas
+#
+# Los secretos de la aplicacion (base de datos, JWT, Fintoc, Resend) NO estan
+# aca: viven solo en /opt/somos/.env dentro del servidor.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+# Dos despliegues a la vez dejarian el servidor a medio camino. Se encolan y no
+# se cancela uno ya empezado.
+concurrency:
+  group: deploy-produccion
+  cancel-in-progress: false
+
+env:
+  REGISTRO: ghcr.io
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # GHCR solo acepta nombres en minuscula y el usuario tiene mayusculas.
+      - name: Resolver el nombre de la imagen
+        id: imagen
+        run: |
+          nombre="${GITHUB_REPOSITORY,,}"
+          echo "repo=${REGISTRO}/${nombre}" >> "$GITHUB_OUTPUT"
+          echo "tag=${REGISTRO}/${nombre}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Entrar a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRO }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar la imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.imagen.outputs.tag }}
+            ${{ steps.imagen.outputs.repo }}:latest
+          # El cache hace que un cambio de codigo no reinstale node_modules.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Preparar el acceso SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Llave de host fijada: si el servidor no es el que esperamos, el
+          # despliegue falla en vez de entregarle la aplicacion a otro.
+          printf '%s\n' "${{ secrets.DROPLET_HOST_KEY }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Copiar la composicion al servidor
+        run: |
+          scp -i ~/.ssh/id_ed25519 deploy/docker-compose.prod.yml \
+            "deploy@${{ secrets.DROPLET_HOST }}:/opt/somos/docker-compose.yml"
+
+      # El script remoto y sus secretos viajan por stdin. Nada de esto va como
+      # argumento: los argumentos quedan a la vista en el `ps` del servidor.
+      - name: Desplegar
+        env:
+          IMAGEN: ${{ steps.imagen.outputs.tag }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            printf 'export SOMOS_IMAGE=%q GHCR_USER=%q GHCR_TOKEN=%q\n' \
+              "$IMAGEN" "$GHCR_USER" "$GHCR_TOKEN"
+            cat deploy/remote-deploy.sh
+          } | ssh -i ~/.ssh/id_ed25519 "deploy@${{ secrets.DROPLET_HOST }}" 'bash -s'
