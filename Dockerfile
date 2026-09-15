@@ -25,6 +25,17 @@ RUN npm run build
 # el runtime pueda sembrar con `node prisma/seed.js` sin arrastrar devDeps.
 RUN ./node_modules/.bin/tsc prisma/seed.ts --outDir /seed --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck
 
+# --- 2b. CLI de Prisma ------------------------------------------------------
+# Copiar `node_modules/prisma` a mano no sirve: el CLI carga dependencias
+# transitivas (`effect`, `@prisma/config`) que no viven dentro de esa carpeta y
+# revienta con "Cannot find module" al primer `migrate deploy`. Se instala en
+# su propio arbol, en la version EXACTA del lockfile: si el CLI y el cliente
+# generado no coinciden, Prisma se niega a correr.
+FROM node:22-alpine AS prisma-cli
+WORKDIR /cli
+COPY package-lock.json ./
+RUN VER="$(node -p "require('./package-lock.json').packages['node_modules/prisma'].version")"  && npm install --no-save --no-audit --no-fund --ignore-scripts "prisma@$VER"
+
 # --- 3. Runtime -------------------------------------------------------------
 FROM node:22-alpine AS runner
 RUN apk add --no-cache openssl
@@ -47,9 +58,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # Prisma CLI + schema + migraciones, para poder correr `migrate deploy` al arrancar.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /seed/seed.js ./prisma/seed.js
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
+
+# El CLI vive aparte, con sus propias dependencias al lado. La ruta importa:
+# Node resuelve subiendo por los directorios, asi que el `node_modules` tiene
+# que ser el padre del paquete para que encuentre a sus hermanos.
+COPY --from=prisma-cli --chown=nextjs:nodejs /cli/node_modules ./prisma-cli/node_modules
 
 # El seed corre fuera del bundle de Next, asi que no puede depender de lo que
 # el trazado de `standalone` haya decidido incluir: sus dos dependencias se
