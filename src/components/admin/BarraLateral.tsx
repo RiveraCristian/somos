@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import {
   CalendarCog,
   ChevronLeft,
+  Handshake,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -23,6 +24,7 @@ const NAVEGACION = [
   { href: '/admin/asistentes', texto: 'Compradores', icono: Users, exacto: false },
   { href: '/admin/invitados', texto: 'Invitados', icono: ListChecks, exacto: false },
   { href: '/admin/evento', texto: 'Evento', icono: CalendarCog, exacto: false },
+  { href: '/admin/auspiciadores', texto: 'Auspiciadores', icono: Handshake, exacto: false },
   { href: '/puerta', texto: 'Puerta', icono: ScanLine, exacto: false },
 ];
 

@@ -2,12 +2,14 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Clock,
-  Disc3,
+  HeartHandshake,
   Lock,
   MapPin,
   QrCode,
+  ShieldAlert,
   Ticket,
   Upload,
+  UserCheck,
   Users,
   Zap,
 } from 'lucide-react';
@@ -26,9 +28,41 @@ import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
 import { etapaVigente, listarEtapas } from '@/lib/etapas';
 import { pasarelaActiva } from '@/lib/pasarela';
 import { fechaLarga, hora, numero, pesos } from '@/lib/formato';
+import { urlDeLogo } from '@/lib/archivos';
+import { UBICACION_SECRETA } from '@/lib/ubicacion';
 
 // El stock de entradas cambia en vivo: nunca se cachea la pagina.
 export const dynamic = 'force-dynamic';
+
+/**
+ * Las cuatro condiciones que definen la fiesta.
+ *
+ * Van en la portada y no solo en los terminos porque las cuatro cambian la
+ * decision de comprar: enterarse en la puerta de que es +18, o de que la
+ * direccion nunca fue publica, llega tarde.
+ */
+const REGLAS = [
+  {
+    icono: <UserCheck size={17} />,
+    titulo: '+18',
+    texto: 'Se verifica con cédula en la puerta.',
+  },
+  {
+    icono: <HeartHandshake size={17} />,
+    titulo: 'Sin fines de lucro',
+    texto: 'Lo recaudado cubre producción y técnica.',
+  },
+  {
+    icono: <MapPin size={17} />,
+    titulo: 'Ubicación secreta',
+    texto: 'La dirección llega con tu entrada.',
+  },
+  {
+    icono: <ShieldAlert size={17} />,
+    titulo: 'Derecho de admisión',
+    texto: 'Nos reservamos admisión y permanencia.',
+  },
+];
 
 function pasos(enLinea: boolean) {
   return [
@@ -111,7 +145,7 @@ export default async function PaginaInicio() {
           <div className="animar-aparecer mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-dim">
             <span className="inline-flex items-center gap-2">
               <MapPin size={15} className="text-cyan" />
-              {evento.eventoVenue ?? 'Lugar por confirmar'}
+              {UBICACION_SECRETA}
             </span>
             {horaTexto && (
               <span className="inline-flex items-center gap-2">
@@ -137,6 +171,23 @@ export default async function PaginaInicio() {
             </Link>
           </div>
         </div>
+      </section>
+
+      {/* -------------------------------------------------------------- REGLAS */}
+      <section className="contenedor -mt-6 pb-4">
+        <Aparecer>
+          <ul className="tarjeta grid gap-px overflow-hidden bg-line sm:grid-cols-2 lg:grid-cols-4">
+            {REGLAS.map((regla) => (
+              <li key={regla.titulo} className="flex gap-3 bg-void px-5 py-5">
+                <span className="mt-0.5 shrink-0 text-cyan">{regla.icono}</span>
+                <div>
+                  <p className="text-sm font-semibold">{regla.titulo}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-dim">{regla.texto}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Aparecer>
       </section>
 
       {/* ------------------------------------------------------------ ENTRADAS */}
@@ -243,7 +294,7 @@ export default async function PaginaInicio() {
         {fechaTexto && (
           <p className="dato mt-8 text-center text-sm text-dim">
             {fechaTexto}
-            {evento.eventoVenue ? ` · ${evento.eventoVenue}` : ''}
+            {horaTexto ? ` · ${horaTexto} hrs` : ''} · {evento.eventoCiudad}
           </p>
         )}
       </section>
@@ -289,48 +340,70 @@ export default async function PaginaInicio() {
           <EncabezadoSeccion
             etiqueta="Line-up"
             titulo="Quién toca"
-            descripcion="El orden de la noche. Se va confirmando a medida que cerramos fechas."
+            descripcion="Cómo se mueve la noche. Los nombres se van confirmando a medida que se acerca la fecha."
           />
 
-          <Escalonado className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {evento.artistas.map((artista) => (
-              <ItemEscalonado
-                key={artista.artistaId}
-                className={artista.artistaDestacado ? 'sm:col-span-2 lg:col-span-1' : ''}
-              >
-              <article className="tarjeta group relative h-full overflow-hidden p-6 transition-transform duration-300 hover:-translate-y-1">
-                {artista.artistaDestacado && (
-                  <span className="insignia insignia-cyan absolute top-5 right-5">Headliner</span>
-                )}
+          {/* Una linea de tiempo y no una grilla de tarjetas: lo que importa
+              acá es el orden en que pasan las cosas, y una grilla lo esconde. */}
+          <Escalonado className="flex flex-col">
+            {evento.artistas.map((artista, i) => {
+              const porConfirmar = /por (confirmar|anunciar)/i.test(artista.artistaNombre);
+              // Mientras el artista no esté cerrado, el estilo es lo unico
+              // concreto que hay para mostrar: va de titulo.
+              const titulo = porConfirmar
+                ? (artista.artistaGenero ?? artista.artistaNombre)
+                : artista.artistaNombre;
+              const bajada = porConfirmar
+                ? 'Artista por confirmar'
+                : artista.artistaGenero;
 
-                <Disc3
-                  size={20}
-                  className={artista.artistaDestacado ? 'text-magenta' : 'text-violeta'}
-                />
+              return (
+                <ItemEscalonado key={artista.artistaId}>
+                  <article
+                    className={`grid gap-x-6 gap-y-2 py-6 sm:grid-cols-[9rem_1fr] ${
+                      i > 0 ? 'border-t border-line' : ''
+                    }`}
+                  >
+                    <div className="dato text-sm text-cyan">
+                      {artista.artistaHoraInicio ? (
+                        <>
+                          {hora(artista.artistaHoraInicio)}
+                          {artista.artistaHoraTermino && (
+                            <span className="text-faint">
+                              {' '}
+                              — {hora(artista.artistaHoraTermino)}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-faint">Horario por definir</span>
+                      )}
+                    </div>
 
-                <h3 className="titulo-display mt-4 text-2xl">{artista.artistaNombre}</h3>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="titulo-display text-2xl">{titulo}</h3>
+                        {artista.artistaDestacado && (
+                          <span className="insignia insignia-cyan">Cierre</span>
+                        )}
+                      </div>
 
-                {artista.artistaGenero && (
-                  <p className="dato mt-1.5 text-xs tracking-[0.16em] text-cyan uppercase">
-                    {artista.artistaGenero}
-                  </p>
-                )}
+                      {bajada && (
+                        <p className="dato mt-1.5 text-xs tracking-[0.16em] text-violeta uppercase">
+                          {bajada}
+                        </p>
+                      )}
 
-                {artista.artistaDescripcion && (
-                  <p className="mt-3 text-sm leading-relaxed text-dim">
-                    {artista.artistaDescripcion}
-                  </p>
-                )}
-
-                {artista.artistaHoraInicio && (
-                  <p className="dato mt-4 text-sm text-dim">
-                    {hora(artista.artistaHoraInicio)}
-                    {artista.artistaHoraTermino ? ` — ${hora(artista.artistaHoraTermino)}` : ''}
-                  </p>
-                )}
-              </article>
-              </ItemEscalonado>
-            ))}
+                      {artista.artistaDescripcion && (
+                        <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-dim">
+                          {artista.artistaDescripcion}
+                        </p>
+                      )}
+                    </div>
+                  </article>
+                </ItemEscalonado>
+              );
+            })}
           </Escalonado>
         </section>
       )}
@@ -347,6 +420,47 @@ export default async function PaginaInicio() {
               respuesta: p.preguntaRespuesta,
             }))}
           />
+        </section>
+      )}
+
+      {/* -------------------------------------------------------- AUSPICIADORES */}
+      {/* Solo aparece si hay alguno cargado: una seccion de auspicios vacia
+          se lee como que nadie quiso auspiciar. */}
+      {evento.auspiciadores.length > 0 && (
+        <section className="contenedor py-16">
+          <Aparecer>
+            <p className="eyebrow text-center">Nos apoyan</p>
+
+            <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-12 gap-y-9">
+              {evento.auspiciadores.map((auspiciador) => {
+                /* eslint-disable-next-line @next/next/no-img-element */
+                const logo = (
+                  <img
+                    src={urlDeLogo(auspiciador.auspiciadorLogo)}
+                    alt={auspiciador.auspiciadorNombre}
+                    className="h-10 w-auto max-w-[10rem] object-contain opacity-65 transition-opacity duration-300 hover:opacity-100 sm:h-12"
+                  />
+                );
+
+                return (
+                  <li key={auspiciador.auspiciadorId}>
+                    {auspiciador.auspiciadorSitio ? (
+                      <a
+                        href={auspiciador.auspiciadorSitio}
+                        target="_blank"
+                        rel="noreferrer sponsored"
+                        title={auspiciador.auspiciadorNombre}
+                      >
+                        {logo}
+                      </a>
+                    ) : (
+                      logo
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </Aparecer>
         </section>
       )}
 

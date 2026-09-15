@@ -46,6 +46,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV UPLOADS_DIR=/app/data/comprobantes
+ENV LOGOS_DIR=/app/data/logos
 
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
@@ -71,7 +72,7 @@ COPY --from=prisma-cli --chown=nextjs:nodejs /cli/node_modules ./prisma-cli/node
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bcryptjs ./node_modules/bcryptjs
 
-RUN mkdir -p /app/data/comprobantes && chown -R nextjs:nodejs /app/data
+RUN mkdir -p /app/data/comprobantes /app/data/logos && chown -R nextjs:nodejs /app/data
 
 USER nextjs
 EXPOSE 3000

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import { Encabezado } from '@/components/publico/Encabezado';
+import { UbicacionRevelada } from '@/components/publico/UbicacionRevelada';
 import { PiePagina } from '@/components/publico/PiePagina';
 import { conciliarPagosPasarela } from '@/lib/conciliacion';
 import { ETIQUETAS_METODO, type MetodoPago, paletaDeTipo } from '@/lib/constantes';
@@ -196,6 +197,19 @@ export default async function PaginaMiEntrada({
                 </Link>
               </div>
             </section>
+          )}
+
+          {/* ---------------------------------------------------- Ubicacion */}
+          {/* Solo con la entrada emitida. Mientras el pago no se confirme, el
+              lugar sigue siendo secreto: es lo unico que sostiene que la
+              direccion no circule antes de tiempo. */}
+          {entrada && entrada.entradaEstado !== 'anulada' && (
+            <UbicacionRevelada
+              venue={evento.eventoVenue}
+              direccion={evento.eventoDireccion}
+              ciudad={evento.eventoCiudad}
+              mapaUrl={evento.eventoMapaUrl}
+            />
           )}
 
           {/* --------------------------------------------------- Pago en línea */}

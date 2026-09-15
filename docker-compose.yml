@@ -18,9 +18,11 @@ services:
     environment:
       NODE_ENV: production
       UPLOADS_DIR: /app/data/comprobantes
+      LOGOS_DIR: /app/data/logos
     volumes:
-      # Los comprobantes de transferencia sobreviven a los redeploys.
-      - somos_comprobantes:/app/data/comprobantes
+      # Comprobantes de transferencia y logos de auspiciadores: lo que suben
+      # las personas y no viene en la imagen. Sobrevive a los redeploys.
+      - somos_datos:/app/data
     extra_hosts:
       # Permite que el contenedor alcance el PostgreSQL del host en Linux.
       # En Docker Desktop (Windows/Mac) host.docker.internal ya existe.
@@ -33,4 +35,4 @@ services:
       start_period: 20s
 
 volumes:
-  somos_comprobantes:
+  somos_datos:

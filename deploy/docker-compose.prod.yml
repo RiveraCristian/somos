@@ -27,10 +27,12 @@ services:
     environment:
       NODE_ENV: production
       UPLOADS_DIR: /app/data/comprobantes
+      LOGOS_DIR: /app/data/logos
 
     volumes:
-      # Los comprobantes de transferencia sobreviven a los redeploys.
-      - somos_comprobantes:/app/data/comprobantes
+      # Comprobantes de transferencia y logos de auspiciadores: lo que suben
+      # las personas y no viene en la imagen. Sobrevive a los redeploys.
+      - somos_datos:/app/data
 
     extra_hosts:
       # Deja que el contenedor alcance el PostgreSQL del host.
@@ -57,4 +59,4 @@ services:
         max-file: '3'
 
 volumes:
-  somos_comprobantes:
+  somos_datos:

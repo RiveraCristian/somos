@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CalendarDays, MapPin, ShieldCheck } from 'lucide-react';
+import { CalendarDays, ShieldCheck } from 'lucide-react';
 
 import { Aparecer } from '@/components/movimiento/Aparecer';
 import { BotonImprimir } from '@/components/publico/BotonImprimir';
 import { Logo } from '@/components/marca/Logo';
+import { UbicacionRevelada } from '@/components/publico/UbicacionRevelada';
 import { paletaDeTipo } from '@/lib/constantes';
 import { obtenerEntradaPorToken } from '@/lib/datos';
 import { fechaHora, fechaLarga, hora } from '@/lib/formato';
@@ -78,11 +79,15 @@ export default async function PaginaEntrada({ params }: { params: Promise<{ toke
                   ? `${fechaLarga(evento.eventoFechaInicio)} · ${hora(evento.eventoFechaInicio)} hrs`
                   : 'Fecha por confirmar'}
               </span>
-              <span className="flex items-center gap-2.5">
-                <MapPin size={15} className="shrink-0 text-magenta" />
-                {evento.eventoVenue ?? 'Lugar por confirmar'}
-                {evento.eventoCiudad ? `, ${evento.eventoCiudad}` : ''}
-              </span>
+              {/* Acá sí va la direccion exacta: esta pagina existe solo si hay
+                  una entrada emitida. En la portada la ubicacion es secreta. */}
+              <UbicacionRevelada
+                variante="tarjeta"
+                venue={evento.eventoVenue}
+                direccion={evento.eventoDireccion}
+                ciudad={evento.eventoCiudad}
+                mapaUrl={evento.eventoMapaUrl}
+              />
             </div>
           </div>
 

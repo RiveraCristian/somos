@@ -21,6 +21,13 @@ function fechaDeMuestra(): Date {
   return d;
 }
 
+/** Hora del dia del evento de muestra. Acepta >24 para pasar a la madrugada. */
+function horaDeMuestra(h: number): Date {
+  const d = fechaDeMuestra();
+  d.setHours(h, 0, 0, 0);
+  return d;
+}
+
 const AHORA = new Date();
 const auditoria = {
   createdBy: 1,
@@ -41,11 +48,10 @@ export function eventoDeVitrina() {
       'Compras tu entrada acá mismo y la pagas por transferencia. Apenas se confirma el pago te llega tu QR al correo.',
     eventoFechaInicio: fechaDeMuestra(),
     eventoFechaTermino: null,
-    eventoVenue: 'Por confirmar',
-    eventoDireccion: null,
+    // Sin venue ni direccion: en el sitio publico la ubicacion es secreta y
+    // la vitrina es, justamente, el sitio publico.
     eventoCiudad: 'Talca',
     eventoRegion: 'Maule',
-    eventoMapaUrl: null,
     eventoCapacidad: 200,
     eventoEstado: 'publicado',
     eventoInstagram: 'somos.cl',
@@ -82,14 +88,59 @@ export function eventoDeVitrina() {
       {
         artistaId: 1,
         artistaEventoId: eventoId,
-        artistaNombre: 'Por anunciar',
-        artistaGenero: 'Techno',
-        artistaDescripcion: 'El line-up se revela más cerca de la fecha.',
-        artistaHoraInicio: null,
-        artistaHoraTermino: null,
+        artistaNombre: 'Por confirmar',
+        artistaGenero: 'Deep house',
+        artistaDescripcion: 'Apertura: la pista se llena de a poco.',
+        artistaHoraInicio: horaDeMuestra(20),
+        artistaHoraTermino: horaDeMuestra(22),
         artistaInstagram: null,
         artistaImagenUrl: null,
         artistaOrden: 1,
+        artistaDestacado: false,
+        artistaActivo: true,
+        ...auditoria,
+      },
+      {
+        artistaId: 2,
+        artistaEventoId: eventoId,
+        artistaNombre: 'Por confirmar',
+        artistaGenero: 'House',
+        artistaDescripcion: null,
+        artistaHoraInicio: horaDeMuestra(22),
+        artistaHoraTermino: horaDeMuestra(24),
+        artistaInstagram: null,
+        artistaImagenUrl: null,
+        artistaOrden: 2,
+        artistaDestacado: false,
+        artistaActivo: true,
+        ...auditoria,
+      },
+      {
+        artistaId: 3,
+        artistaEventoId: eventoId,
+        artistaNombre: 'Por confirmar',
+        artistaGenero: 'Tech house',
+        artistaDescripcion: 'El punto mas alto de la noche.',
+        artistaHoraInicio: horaDeMuestra(24),
+        artistaHoraTermino: horaDeMuestra(26),
+        artistaInstagram: null,
+        artistaImagenUrl: null,
+        artistaOrden: 3,
+        artistaDestacado: false,
+        artistaActivo: true,
+        ...auditoria,
+      },
+      {
+        artistaId: 4,
+        artistaEventoId: eventoId,
+        artistaNombre: 'Por confirmar',
+        artistaGenero: 'Reggaetón',
+        artistaDescripcion: 'Cierre.',
+        artistaHoraInicio: horaDeMuestra(26),
+        artistaHoraTermino: horaDeMuestra(28),
+        artistaInstagram: null,
+        artistaImagenUrl: null,
+        artistaOrden: 4,
         artistaDestacado: true,
         artistaActivo: true,
         ...auditoria,
@@ -141,6 +192,10 @@ export function eventoDeVitrina() {
         ...auditoria,
       },
     ],
+
+    // La vitrina no muestra auspicios: los logos son de terceros y no tienen
+    // por que aparecer en una demo publicada en GitHub Pages.
+    auspiciadores: [],
   };
 }
 

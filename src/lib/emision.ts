@@ -3,6 +3,7 @@ import { enviarCorreo, plantillaEntrada } from './correo';
 import { fechaLarga, hora } from './formato';
 import { prisma } from './prisma';
 import { qrComoPng, urlDeEntrada } from './qr';
+import { enlaceDeMapa } from './ubicacion';
 
 export type ResultadoConfirmacion = {
   entradaId: number;
@@ -126,9 +127,17 @@ export async function confirmarPagoYEmitir(
         fechaTexto: evento.eventoFechaInicio
           ? `${fechaLarga(evento.eventoFechaInicio)} · ${hora(evento.eventoFechaInicio)} hrs`
           : null,
-        lugarTexto: evento.eventoVenue
-          ? `${evento.eventoVenue}, ${evento.eventoCiudad}`
-          : evento.eventoCiudad,
+        // El correo es el otro canal donde la direccion es legitima: solo lo
+        // recibe quien ya tiene su entrada emitida.
+        lugarTexto: [evento.eventoVenue, evento.eventoDireccion, evento.eventoCiudad]
+          .filter(Boolean)
+          .join(', '),
+        mapaUrl: enlaceDeMapa({
+          mapaUrl: evento.eventoMapaUrl,
+          direccion: evento.eventoDireccion,
+          venue: evento.eventoVenue,
+          ciudad: evento.eventoCiudad,
+        }),
       }),
       adjuntos: [{ filename: `entrada-${resultado.entrada.entradaCodigo}.png`, content: png }],
     });

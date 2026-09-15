@@ -15,6 +15,17 @@ export const obtenerEventoPublico = cache(async () => {
   const evento = await prisma.evento.findFirst({
     where: { isDeleted: false, eventoEstado: { in: ['publicado', 'borrador'] } },
     orderBy: [{ eventoEstado: 'asc' }, { createdAt: 'desc' }],
+    // La ubicacion no sale de la base para el sitio publico. No basta con no
+    // pintarla: si viaja en la consulta, cualquier `console.log`, un error
+    // serializado o una vista futura la filtra sin que nadie lo note.
+    //
+    // El NOMBRE del recinto va en la misma bolsa que la direccion: "Galpon El
+    // Sauce" se busca en Google y aparece la direccion. Publicar el nombre es
+    // publicar el lugar.
+    // Las vistas que si pueden mostrarla la piden por su propio camino
+    // (obtenerAsistentePorToken / obtenerEntradaPorToken), y esas exigen un
+    // token de entrada valido.
+    omit: { eventoVenue: true, eventoDireccion: true, eventoMapaUrl: true },
     include: {
       tiposEntrada: {
         where: { tipoEntradaActivo: true },
@@ -27,6 +38,10 @@ export const obtenerEventoPublico = cache(async () => {
       preguntas: {
         where: { preguntaActiva: true },
         orderBy: { preguntaOrden: 'asc' },
+      },
+      auspiciadores: {
+        where: { auspiciadorActivo: true },
+        orderBy: { auspiciadorOrden: 'asc' },
       },
     },
   });
@@ -43,6 +58,7 @@ export const obtenerEventoAdmin = cache(async () => {
       tiposEntrada: { orderBy: { tipoEntradaOrden: 'asc' } },
       artistas: { orderBy: { artistaOrden: 'asc' } },
       preguntas: { orderBy: { preguntaOrden: 'asc' } },
+      auspiciadores: { orderBy: { auspiciadorOrden: 'asc' } },
     },
   });
 });

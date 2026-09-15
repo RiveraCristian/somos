@@ -15,7 +15,8 @@ export function PiePagina({ instagram, ciudad }: Props) {
         <Logo alto={52} className="opacity-50" />
 
         <p className="max-w-md text-sm leading-relaxed text-dim">
-          Fiesta de música electrónica. Una entrada por persona, con QR de un solo uso.
+          Fiesta privada de música electrónica, sin fines de lucro y para mayores de 18 años.
+          Una entrada por persona, con QR de un solo uso.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
@@ -31,6 +32,9 @@ export function PiePagina({ instagram, ciudad }: Props) {
           )}
           <Link href="/mi-entrada" className="text-dim transition-colors hover:text-ink">
             Ver mi entrada
+          </Link>
+          <Link href="/terminos" className="text-dim transition-colors hover:text-ink">
+            Términos y responsabilidad
           </Link>
           <Link href="/ingresar" className="text-dim transition-colors hover:text-ink">
             Acceso staff

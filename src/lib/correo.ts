@@ -103,6 +103,7 @@ export function plantillaEntrada(datos: {
   montoPagado: number;
   fechaTexto: string | null;
   lugarTexto: string | null;
+  mapaUrl?: string | null;
 }): string {
   const filaFecha = datos.fechaTexto
     ? `<tr><td style="padding:6px 0;color:#808DA8;font-size:13px;">Cuando</td>
@@ -111,6 +112,13 @@ export function plantillaEntrada(datos: {
   const filaLugar = datos.lugarTexto
     ? `<tr><td style="padding:6px 0;color:#808DA8;font-size:13px;">Donde</td>
          <td style="padding:6px 0;text-align:right;font-size:13px;">${datos.lugarTexto}</td></tr>`
+    : '';
+  // La direccion solo viaja en este correo y en la pagina de la entrada: en el
+  // sitio publico el lugar es secreto.
+  const filaMapa = datos.mapaUrl
+    ? `<tr><td colspan="2" style="padding:6px 0;text-align:right;font-size:13px;">
+         <a href="${datos.mapaUrl}" style="color:#00F0FF;text-decoration:none;">Como llegar &rarr;</a>
+       </td></tr>`
     : '';
 
   return envoltorio(`
@@ -132,6 +140,7 @@ export function plantillaEntrada(datos: {
           <td style="padding:6px 0;text-align:right;font-family:monospace;font-size:14px;letter-spacing:2px;color:#00F0FF;">${datos.codigo}</td></tr>
       ${filaFecha}
       ${filaLugar}
+      ${filaMapa}
     </table>
 
     <a href="${datos.url}"
@@ -143,7 +152,8 @@ export function plantillaEntrada(datos: {
 
     <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#808DA8;">
       El QR tambien va adjunto a este correo. Es de un solo uso: se quema al escanearlo
-      en la puerta, asi que no se lo pases a nadie.
+      en la puerta, asi que no se lo pases a nadie. La direccion tampoco: el lugar es
+      privado y se comparte solo con quien tiene entrada.
     </p>
   `);
 }

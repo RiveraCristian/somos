@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { AlertCircle, ArrowRight, Check, Loader2, MailCheck } from 'lucide-react';
 
@@ -298,8 +299,21 @@ function Mensajes({ estado }: { estado: EstadoCompra }) {
 
 function Aviso() {
   return (
-    <p className="text-center text-xs leading-relaxed text-faint">
-      Guardamos tu nombre y correo solo para emitir tu entrada y avisarte del evento.
-    </p>
+    <div className="flex flex-col gap-2 text-center text-xs leading-relaxed text-faint">
+      <p>Guardamos tu nombre y correo solo para emitir tu entrada y avisarte del evento.</p>
+      {/* Los terminos dicen que comprar equivale a aceptarlos: si el enlace no
+          esta a la vista justo aca, esa frase no se sostiene. */}
+      <p>
+        Evento privado para mayores de 18 años, sin fines de lucro. Al reservar aceptas los{' '}
+        <Link
+          href="/terminos"
+          target="_blank"
+          className="text-dim underline underline-offset-2 hover:text-ink"
+        >
+          términos y la exención de responsabilidad
+        </Link>
+        .
+      </p>
+    </div>
   );
 }

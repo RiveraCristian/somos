@@ -44,33 +44,35 @@ model Usuario {
   usuarioFechaCreacion      DateTime  @default(now()) @map("usuario_fecha_creacion")
   usuarioFechaDesactivacion DateTime? @map("usuario_fecha_desactivacion")
 
-  sesiones              Sesion[]
-  escaneos              Escaneo[]
-  eventosCreados        Evento[]            @relation("EventoCreador")
-  eventosModificados    Evento[]            @relation("EventoModificador")
-  eventosEliminados     Evento[]            @relation("EventoEliminador")
-  tiposCreados          TipoEntrada[]       @relation("TipoEntradaCreador")
-  tiposModificados      TipoEntrada[]       @relation("TipoEntradaModificador")
-  artistasCreados       Artista[]           @relation("ArtistaCreador")
-  artistasModificados   Artista[]           @relation("ArtistaModificador")
-  preguntasCreadas      PreguntaFrecuente[] @relation("PreguntaCreador")
-  preguntasModificadas  PreguntaFrecuente[] @relation("PreguntaModificador")
-  asistentesCreados     Asistente[]         @relation("AsistenteCreador")
-  asistentesModificados Asistente[]         @relation("AsistenteModificador")
-  asistentesEliminados  Asistente[]         @relation("AsistenteEliminador")
-  pagosCreados          Pago[]              @relation("PagoCreador")
-  pagosModificados      Pago[]              @relation("PagoModificador")
-  pagosEliminados       Pago[]              @relation("PagoEliminador")
-  pagosRevisados        Pago[]              @relation("PagoRevisor")
-  entradasCreadas       Entrada[]           @relation("EntradaCreador")
-  entradasModificadas   Entrada[]           @relation("EntradaModificador")
-  entradasEliminadas    Entrada[]           @relation("EntradaEliminador")
-  entradasQuemadas      Entrada[]           @relation("EntradaQuemadaPor")
-  etapasCreadas         EtapaVenta[]        @relation("EtapaCreador")
-  etapasModificadas     EtapaVenta[]        @relation("EtapaModificador")
-  invitadosCreados      Invitado[]          @relation("InvitadoCreador")
-  invitadosModificados  Invitado[]          @relation("InvitadoModificador")
-  invitadosEliminados   Invitado[]          @relation("InvitadoEliminador")
+  sesiones                 Sesion[]
+  escaneos                 Escaneo[]
+  eventosCreados           Evento[]            @relation("EventoCreador")
+  eventosModificados       Evento[]            @relation("EventoModificador")
+  eventosEliminados        Evento[]            @relation("EventoEliminador")
+  tiposCreados             TipoEntrada[]       @relation("TipoEntradaCreador")
+  tiposModificados         TipoEntrada[]       @relation("TipoEntradaModificador")
+  artistasCreados          Artista[]           @relation("ArtistaCreador")
+  artistasModificados      Artista[]           @relation("ArtistaModificador")
+  preguntasCreadas         PreguntaFrecuente[] @relation("PreguntaCreador")
+  preguntasModificadas     PreguntaFrecuente[] @relation("PreguntaModificador")
+  asistentesCreados        Asistente[]         @relation("AsistenteCreador")
+  asistentesModificados    Asistente[]         @relation("AsistenteModificador")
+  asistentesEliminados     Asistente[]         @relation("AsistenteEliminador")
+  pagosCreados             Pago[]              @relation("PagoCreador")
+  pagosModificados         Pago[]              @relation("PagoModificador")
+  pagosEliminados          Pago[]              @relation("PagoEliminador")
+  pagosRevisados           Pago[]              @relation("PagoRevisor")
+  entradasCreadas          Entrada[]           @relation("EntradaCreador")
+  entradasModificadas      Entrada[]           @relation("EntradaModificador")
+  entradasEliminadas       Entrada[]           @relation("EntradaEliminador")
+  entradasQuemadas         Entrada[]           @relation("EntradaQuemadaPor")
+  etapasCreadas            EtapaVenta[]        @relation("EtapaCreador")
+  etapasModificadas        EtapaVenta[]        @relation("EtapaModificador")
+  invitadosCreados         Invitado[]          @relation("InvitadoCreador")
+  invitadosModificados     Invitado[]          @relation("InvitadoModificador")
+  invitadosEliminados      Invitado[]          @relation("InvitadoEliminador")
+  auspiciadoresCreados     Auspiciador[]       @relation("AuspiciadorCreador")
+  auspiciadoresModificados Auspiciador[]       @relation("AuspiciadorModificador")
 
   @@map("usuarios")
 }
@@ -141,12 +143,13 @@ model Evento {
   modificador Usuario? @relation("EventoModificador", fields: [modifiedBy], references: [usuarioId])
   eliminador  Usuario? @relation("EventoEliminador", fields: [deletedBy], references: [usuarioId])
 
-  tiposEntrada TipoEntrada[]
-  artistas     Artista[]
-  preguntas    PreguntaFrecuente[]
-  asistentes   Asistente[]
-  etapas       EtapaVenta[]
-  invitados    Invitado[]
+  tiposEntrada  TipoEntrada[]
+  artistas      Artista[]
+  preguntas     PreguntaFrecuente[]
+  auspiciadores Auspiciador[]
+  asistentes    Asistente[]
+  etapas        EtapaVenta[]
+  invitados     Invitado[]
 
   @@map("eventos")
 }
@@ -238,6 +241,36 @@ model PreguntaFrecuente {
 
   @@index([preguntaEventoId])
   @@map("preguntas_frecuentes")
+}
+
+// ---------------------------------------------------------------------------
+// Auspiciadores
+//
+// El logo no vive en /public: lo sube el organizador desde el panel y se sirve
+// por /api/logo/<archivo>, igual que los comprobantes. Asi agregar un auspicio
+// no obliga a un despliegue.
+// ---------------------------------------------------------------------------
+model Auspiciador {
+  auspiciadorId       Int     @id @default(autoincrement()) @map("auspiciador_id")
+  auspiciadorEventoId Int     @map("auspiciador_evento_id")
+  auspiciadorNombre   String  @map("auspiciador_nombre") @db.VarChar(120)
+  /// Nombre del archivo guardado, no una ruta: la ruta la arma el servidor.
+  auspiciadorLogo     String  @map("auspiciador_logo") @db.VarChar(200)
+  auspiciadorSitio    String? @map("auspiciador_sitio") @db.VarChar(300)
+  auspiciadorOrden    Int     @default(0) @map("auspiciador_orden")
+  auspiciadorActivo   Boolean @default(true) @map("auspiciador_activo")
+
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedBy Int?     @map("modified_by")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  evento      Evento   @relation(fields: [auspiciadorEventoId], references: [eventoId])
+  creador     Usuario  @relation("AuspiciadorCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("AuspiciadorModificador", fields: [modifiedBy], references: [usuarioId])
+
+  @@index([auspiciadorEventoId])
+  @@map("auspiciadores")
 }
 
 // ---------------------------------------------------------------------------

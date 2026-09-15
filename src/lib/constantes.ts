@@ -93,4 +93,13 @@ export function paletaDeTipo(color: string | null | undefined) {
 /** Tipos de archivo aceptados como comprobante de transferencia. */
 export const MIMES_COMPROBANTE = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'] as const;
 
+/**
+ * Formatos aceptados para el logo de un auspiciador.
+ * Sin SVG: puede traer scripts y el logo se sirve a todo el publico.
+ */
+export const MIMES_LOGO = ['image/png', 'image/jpeg', 'image/webp'] as const;
+
+/** Un logo no necesita mas que esto; el tope corta subidas por equivocacion. */
+export const LOGO_MAX_MB = 2;
+
 export const ZONA_HORARIA = 'America/Santiago';
