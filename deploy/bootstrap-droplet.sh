@@ -216,7 +216,10 @@ install -d -m 755 -o deploy -g deploy "$DIR_APP"
 if [ ! -f "$DIR_APP/.env" ]; then
   JWT="$(openssl rand -base64 48 | tr -d '\n')"
   PASS_ADMIN="$(openssl rand -base64 18 | tr -d '/+=\n' | head -c 16)"
-  IP_PUBLICA="$(curl -s --max-time 5 https://ifconfig.me || hostname -I | awk '{print $1}')"
+  # -4 obligatorio: sin eso el servicio contesta con la IPv6 del droplet y
+  # APP_URL queda con una URL invalida (una IPv6 va entre corchetes). De
+  # APP_URL sale el contenido de los QR: un error aca emite entradas rotas.
+  IP_PUBLICA="$(curl -s -4 --max-time 5 https://ifconfig.me || hostname -I | awk '{print $1}')"
   cat > "$DIR_APP/.env" <<ENVEOF
 # SOMOS — entorno de produccion. Generado por bootstrap-droplet.sh.
 # Este archivo es la unica copia de estos secretos. No se versiona.
