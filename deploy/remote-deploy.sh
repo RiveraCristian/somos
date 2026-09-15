@@ -35,8 +35,10 @@ docker compose run --rm --no-deps somos node prisma/seed.js
 echo "==> Levantando la aplicacion"
 docker compose up -d --remove-orphans
 
-# El disco son 8.7 GB: las imagenes viejas se acumulan rapido.
-docker image prune -af --filter 'until=72h' >/dev/null
+# El disco son 8.7 GB y la imagen pesa ~700 MB: guardar versiones viejas para
+# un eventual rollback no cabe. Se borra todo lo que no use el contenedor vivo;
+# si hay que volver atras, la version anterior sigue en GHCR y se vuelve a bajar.
+docker image prune -af >/dev/null
 
 echo "==> Esperando a que responda sana"
 for _ in $(seq 1 30); do
