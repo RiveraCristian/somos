@@ -26,27 +26,40 @@ export function fechaLarga(fecha: Date | null | undefined): string | null {
   }).format(fecha);
 }
 
+/**
+ * Reloj de 24 horas.
+ *
+ * `es-CL` formatea en 12 horas por defecto, y eso deja cosas como
+ * "09:00 p. m. hrs" en la portada y un line-up nocturno imposible de leer de
+ * un vistazo. Con hour12 en false, algunos entornos escriben la medianoche
+ * como "24:00" en vez de "00:00", asi que se corrige.
+ */
+function en24Horas(fecha: Date, opciones: Intl.DateTimeFormatOptions): string {
+  const texto = new Intl.DateTimeFormat('es-CL', {
+    ...opciones,
+    hour12: false,
+    timeZone: ZONA_HORARIA,
+  }).format(fecha);
+
+  return texto.replace(/(^|\s)24:/, '$100:');
+}
+
 /** "14 mar 2026, 23:04" */
 export function fechaHora(fecha: Date | null | undefined): string | null {
   if (!fecha) return null;
-  return new Intl.DateTimeFormat('es-CL', {
+  return en24Horas(fecha, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: ZONA_HORARIA,
-  }).format(fecha);
+  });
 }
 
 /** "23:04" */
 export function hora(fecha: Date | null | undefined): string | null {
   if (!fecha) return null;
-  return new Intl.DateTimeFormat('es-CL', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: ZONA_HORARIA,
-  }).format(fecha);
+  return en24Horas(fecha, { hour: '2-digit', minute: '2-digit' });
 }
 
 /** "hace 4 minutos" */
