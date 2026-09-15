@@ -89,9 +89,8 @@ export default async function PaginaComprar({
             <div className="text-sm leading-relaxed text-dim">
               <p className="font-medium text-ink">Solo por invitación</p>
               <p className="mt-1">
-                Verificamos tu teléfono contra la lista de invitados. Cada número puede
-                sacar hasta dos entradas, y cada entrada va a nombre de una persona con
-                su propio correo.
+                Verificamos tu teléfono contra la lista de invitados. Cada número da
+                derecho a una entrada, a nombre de una persona y con su propio correo.
                 {etapa?.restantes ? (
                   <>
                     {' '}

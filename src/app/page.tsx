@@ -157,7 +157,7 @@ export default async function PaginaInicio() {
               <Ticket size={15} className="text-magenta" />
               {evento.eventoCapacidad
                 ? `${numero(evento.eventoCapacidad)} cupos`
-                : 'Cupos limitados'}
+                : 'Sin límite de cupos'}
             </span>
           </div>
 
@@ -285,8 +285,7 @@ export default async function PaginaInicio() {
             <Lock size={16} className="mt-0.5 shrink-0 text-violeta" />
             <span>
               Para comprar necesitas estar en la lista. Verificamos con tu número de
-              teléfono, y cada número puede sacar hasta dos entradas — la tuya y la de
-              alguien que traigas.
+              teléfono, y cada número da derecho a una entrada.
             </span>
           </p>
         </Aparecer>

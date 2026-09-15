@@ -49,13 +49,13 @@ const SECCIONES: Seccion[] = [
       {
         titulo: '1.1',
         parrafos: [
-          'SOMOS es una experiencia de carácter estrictamente privado, de asistencia limitada (máximo 200 cupos) y gestionada sin fines de lucro. Los fondos recaudados se destinan exclusivamente a cubrir los costos de producción y técnica del evento.',
+          'SOMOS es una experiencia de carácter estrictamente privado, de asistencia restringida a la lista de invitados y gestionada sin fines de lucro. Los fondos recaudados se destinan exclusivamente a cubrir los costos de producción y técnica del evento.',
         ],
       },
       {
         titulo: '1.2',
         parrafos: [
-          'El acceso al recinto privado está restringido únicamente a las personas que figuren en la lista de invitados autorizados y que hayan verificado previamente su identidad mediante su número de teléfono y correo electrónico.',
+          'El acceso al recinto privado está restringido únicamente a las personas que figuren en la lista de invitados autorizados y que hayan verificado previamente su identidad mediante su número de teléfono y correo electrónico. Cada número habilitado da derecho a una entrada.',
         ],
       },
       {

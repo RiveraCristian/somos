@@ -522,7 +522,7 @@ model Invitado {
   invitadoTelefono String  @map("invitado_telefono") @db.VarChar(20)
   invitadoNombre   String? @map("invitado_nombre") @db.VarChar(200)
   /// Cuantas entradas puede comprar este numero.
-  invitadoCupo     Int     @default(2) @map("invitado_cupo")
+  invitadoCupo     Int     @default(1) @map("invitado_cupo")
   invitadoNota     String? @map("invitado_nota") @db.VarChar(300)
   invitadoActivo   Boolean @default(true) @map("invitado_activo")
 

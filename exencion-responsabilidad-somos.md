@@ -5,8 +5,8 @@ Este documento establece las condiciones de acceso, permanencia y la delimitaci�
 ---
 
 ### 1. Naturaleza del Evento y Derecho de Admisión
-1.1. **SOMOS** es una experiencia de carácter estrictamente privado, de asistencia limitada (máximo 200 cupos) y gestionada sin fines de lucro (los fondos recaudados se destinan exclusivamente a cubrir los costos de producción y técnica del evento).
-1.2. El acceso al recinto privado está restringido únicamente a las personas que figuren en la lista de invitados autorizados y que hayan verificado previamente su identidad mediante su número de teléfono y correo electrónico.
+1.1. **SOMOS** es una experiencia de carácter estrictamente privado, de asistencia restringida a la lista de invitados y gestionada sin fines de lucro (los fondos recaudados se destinan exclusivamente a cubrir los costos de producción y técnica del evento).
+1.2. El acceso al recinto privado está restringido únicamente a las personas que figuren en la lista de invitados autorizados y que hayan verificado previamente su identidad mediante su número de teléfono y correo electrónico. Cada número habilitado da derecho a una entrada.
 1.3. Los organizadores se reservan de manera estricta el **derecho de admisión y permanencia**. Se prohibirá el ingreso o se solicitará el retiro del recinto, sin derecho a reembolso, a cualquier persona que:
 *   Muestre un comportamiento agresivo, ofensivo o que perturbe la seguridad y la convivencia del evento.
 *   Intente ingresar bajo la influencia de sustancias ilícitas o en un estado de temperancia que los organizadores consideren de riesgo.

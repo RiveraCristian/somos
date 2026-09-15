@@ -7,10 +7,10 @@ Bienvenido a la sección de **Preguntas Frecuentes** de **SOMOS**. Aquí encontr
 ## 🎟️ Compra de Entradas y Precios
 
 ### 1. ¿Cómo puedo comprar una entrada para SOMOS?
-Al ser una fiesta de carácter estrictamente privado, **solo pueden comprar quienes se encuentren en nuestra lista de invitados autorizados** [1, 2]. Para adquirir tu entrada, el sistema verificará tu número de teléfono [2]. Cada número telefónico habilitado en la lista puede adquirir un **máximo de dos entradas** (la tuya y la de un acompañante) [2].
+Al ser una fiesta de carácter estrictamente privado, **solo pueden comprar quienes se encuentren en nuestra lista de invitados autorizados** [1, 2]. Para adquirir tu entrada, el sistema verificará tu número de teléfono [2]. Cada número telefónico habilitado en la lista da derecho a **una entrada** [2].
 
 ### 2. ¿Cuáles son los precios de las entradas y sus etapas?
-La venta de entradas se divide en tres etapas progresivas según el aforo limitado (máximo 200 cupos en total) [1, 2]:
+La venta de entradas se divide en tres etapas progresivas de precio. **No hay tope de entradas** [1, 2]:
 *   **Primera tanda (entradas 1 a 100):** $20.000 por persona [2].
 *   **Segunda tanda (entradas 101 en adelante):** $25.000 por persona [2].
 *   **En puerta (mismo día del evento, sujeto a disponibilidad de cupos):** $30.000 por persona [2].
@@ -28,7 +28,7 @@ El proceso consta de tres sencillos pasos [3]:
 ## 🚪 Acceso e Ingreso al Recinto
 
 ### 4. ¿Cuándo y a qué hora es el evento?
-El evento está programado para el **jueves 19 de noviembre de 2026** a partir de las **08:00 p.m.** (*fecha y hora por confirmar*) [2]. Te recomendamos mantenerte atento a nuestras actualizaciones para la confirmación definitiva de la fecha [1, 2].
+El evento se realiza el **sábado 21 de noviembre de 2026** a partir de las **21:00 hrs**, y va hasta las **05:00** [2].
 
 ### 5. ¿Dónde se realizará la fiesta?
 SOMOS se desarrollará en un **recinto privado ubicado en la comuna de Talca, Región del Maule** [1]. Por motivos de seguridad y exclusividad, la dirección exacta solo se comparte con los invitados confirmados que posean una entrada válida [1, 2].
@@ -37,14 +37,14 @@ SOMOS se desarrollará en un **recinto privado ubicado en la comuna de Talca, Re
 Para ingresar deberás presentar el **código QR único** (ya sea en tu teléfono o impreso) que recibiste en tu correo tras confirmar tu pago [2, 3]. El personal del staff escaneará tu código en la portería [4, exención-responsabilidad]. Ten en cuenta que **cada entrada es personal, nominal y el código QR es de un solo uso** (una entrada, una persona) [2, 4, exención-responsabilidad]. No se permitirá el acceso a personas que no figuren en la lista de invitados ni estén registradas en el sistema de portería [2, exención-responsabilidad].
 
 ### 7. ¿Puedo comprar entradas directamente en la puerta el día del evento?
-Sí, únicamente si aún quedan cupos disponibles de los 200 autorizados para el evento, si estás en la lista de invitados y pagando la tarifa de puerta de **$30.000** [2]. Dado que el aforo es sumamente reducido, te sugerimos asegurar tu cupo con anticipación en la web [1, 2].
+Sí, si estás en la lista de invitados y pagando la tarifa de puerta de **$30.000** [2]. No hay tope de entradas, pero comprar con anticipación en la web sale más barato [1, 2].
 
 ---
 
 ## 🎵 Experiencia y Música
 
 ### 8. ¿Quiénes se presentarán en SOMOS?
-Fieles al concepto de club privado, la curatoría musical estará enfocada en el **Techno** y la música electrónica de vanguardia [3, 4]. El line-up oficial (incluyendo al headliner) se irá revelando de forma progresiva a medida que se acerque la fecha del evento [3].
+La noche recorre cuatro estilos, de dos horas cada uno: **deep house** (21:00), **house** (23:00), **tech house** (01:00) y **reggaetón** (03:00) [3, 4]. El line-up oficial se irá revelando de forma progresiva a medida que se acerque la fecha [3].
 
 ---
 

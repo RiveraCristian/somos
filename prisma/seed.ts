@@ -14,19 +14,19 @@ const prisma = new PrismaClient();
 const USUARIO_SISTEMA_ID = 1;
 
 /**
- * Jueves 19 de noviembre de 2026, de 20:00 a 04:00, hora de Chile.
+ * Sabado 21 de noviembre de 2026, de 21:00 a 05:00, hora de Chile.
  *
  * El desfase va escrito (-03:00) en vez de calcularse: en noviembre Chile esta
  * en horario de verano, y para una fecha fija y conocida es mas claro que
  * arrastrar el conversor de zonas hasta aca. El seed se compila aparte para la
  * imagen de produccion y no puede importar de `src/`.
  */
-const INICIO_EVENTO = new Date('2026-11-19T20:00:00-03:00');
-const TERMINO_EVENTO = new Date('2026-11-20T04:00:00-03:00');
+const INICIO_EVENTO = new Date('2026-11-21T21:00:00-03:00');
+const TERMINO_EVENTO = new Date('2026-11-22T05:00:00-03:00');
 
 /** Una hora del dia del evento, en hora de Chile. Acepta >=24 para la madrugada. */
 function horaEvento(hora: number): Date {
-  const dia = hora >= 24 ? 20 : 19;
+  const dia = hora >= 24 ? 22 : 21;
   const hh = String(hora % 24).padStart(2, '0');
   return new Date(`2026-11-${dia}T${hh}:00:00-03:00`);
 }
@@ -113,9 +113,10 @@ async function main() {
       eventoDireccion: null,
       eventoCiudad: 'Talca',
       eventoRegion: 'Maule',
-      eventoCapacidad: 200,
+      // Sin tope de aforo: no hay limite de entradas.
+      eventoCapacidad: null,
       eventoEstado: 'publicado',
-      eventoInstagram: 'somos.cl',
+      eventoInstagram: 'somos.vol3',
       eventoWhatsapp: null,
 
       // Datos de cobro: reemplazalos por los tuyos desde /admin/evento.
@@ -146,7 +147,7 @@ async function main() {
       nombre: 'General',
       descripcion: 'Acceso al recinto durante toda la noche.',
       precio: 20000,
-      cupo: 200,
+      cupo: null,
       orden: 1,
       color: 'cyan',
     },
@@ -225,7 +226,7 @@ async function main() {
       invitadoEventoId: evento.eventoId,
       invitadoTelefono: '+56999999999',
       invitadoNombre: 'Numero de prueba',
-      invitadoCupo: 2,
+      invitadoCupo: 1,
       invitadoNota: 'Provisorio: reemplazar por la lista real de invitados.',
       createdBy: USUARIO_SISTEMA_ID,
     },
@@ -244,10 +245,10 @@ async function main() {
     // Bloques por estilo, no artistas: los nombres se confirman despues y
     // mientras tanto lo concreto es como se mueve la noche.
     const bloques = [
-      { genero: 'Deep house', desc: 'Apertura. La pista se llena de a poco.', desde: 20, hasta: 22, cierre: false },
-      { genero: 'House', desc: null, desde: 22, hasta: 24, cierre: false },
-      { genero: 'Tech house', desc: 'El punto mas alto de la noche.', desde: 24, hasta: 26, cierre: false },
-      { genero: 'Reggaetón', desc: 'Cierre.', desde: 26, hasta: 28, cierre: true },
+      { genero: 'Deep house', desc: 'Apertura. La pista se llena de a poco.', desde: 21, hasta: 23, cierre: false },
+      { genero: 'House', desc: null, desde: 23, hasta: 25, cierre: false },
+      { genero: 'Tech house', desc: 'El punto mas alto de la noche.', desde: 25, hasta: 27, cierre: false },
+      { genero: 'Reggaetón', desc: 'Cierre.', desde: 27, hasta: 29, cierre: true },
     ];
 
     await prisma.artista.createMany({
@@ -279,11 +280,11 @@ async function main() {
     const preguntas: [string, string][] = [
       [
         '¿Cualquiera puede comprar una entrada?',
-        'No. SOMOS es estrictamente privada: solo compra quien está en la lista de invitados. Al comprar verificamos tu número de teléfono, y cada número habilitado puede sacar hasta dos entradas — la tuya y la de alguien que traigas.',
+        'No. SOMOS es estrictamente privada: solo compra quien está en la lista de invitados. Al comprar verificamos tu número de teléfono, y cada número habilitado da derecho a una entrada.',
       ],
       [
         '¿Cuánto cuesta y por qué sube el precio?',
-        'El aforo es de 200 cupos y el precio sube por etapas: las primeras 100 entradas valen $20.000, desde la 101 valen $25.000, y el mismo día del evento cuestan $30.000 en la puerta. Mientras antes compres, menos pagas.',
+        'El precio sube por etapas: las primeras 100 entradas valen $20.000, desde la 101 valen $25.000, y el mismo día del evento cuestan $30.000 en la puerta. No hay tope de entradas, pero mientras antes compres, menos pagas.',
       ],
       [
         '¿Cómo pago?',
@@ -291,7 +292,7 @@ async function main() {
       ],
       [
         '¿Cuándo y a qué hora es?',
-        'Jueves 19 de noviembre de 2026. Las puertas abren a las 20:00 y la fiesta va hasta las 04:00.',
+        'Sábado 21 de noviembre de 2026. Las puertas abren a las 21:00 y la fiesta va hasta las 05:00.',
       ],
       [
         '¿Dónde es?',
@@ -307,7 +308,7 @@ async function main() {
       ],
       [
         '¿Puedo comprar en la puerta?',
-        'Sí, pero solo si quedan cupos de los 200 y si estás en la lista de invitados. En la puerta la entrada cuesta $30.000. Como el aforo es reducido, conviene asegurar el cupo antes.',
+        'Sí, si estás en la lista de invitados. En la puerta la entrada cuesta $30.000. No hay tope de entradas, pero comprar antes sale más barato.',
       ],
       [
         '¿Hay edad mínima y derecho de admisión?',
