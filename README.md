@@ -480,7 +480,7 @@ comprobantes viven en el volumen `somos_comprobantes`.
 Antes del primer arranque, aplica las migraciones:
 
 ```bash
-docker compose run --rm somos npx prisma migrate deploy
+docker compose run --rm somos node prisma-cli/node_modules/prisma/build/index.js migrate deploy
 ```
 
 ### Servidor propio sin Docker

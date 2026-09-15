@@ -25,7 +25,7 @@ docker compose pull --quiet
 # Las migraciones corren ANTES de levantar la version nueva (CLAUDE.md 11.5.6).
 echo "==> Migraciones"
 docker compose run --rm --no-deps somos \
-  node node_modules/prisma/build/index.js migrate deploy
+  node prisma-cli/node_modules/prisma/build/index.js migrate deploy
 
 # El seed es idempotente: todos sus upsert llevan `update: {}`, asi que
 # repetirlo no pisa lo que se haya editado desde el panel.
