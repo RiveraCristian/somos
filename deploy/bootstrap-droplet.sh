@@ -5,7 +5,7 @@
 # Es IDEMPOTENTE: correrlo de nuevo no rompe nada ni pisa los secretos ya
 # generados. Se ejecuta UNA vez como root:
 #
-#   bash bootstrap-droplet.sh "<llave-publica-ssh-del-deploy>"
+#   bash bootstrap-droplet.sh "<llave-publica-ssh-del-deploy>" [dominio]
 #
 # Deja el servidor con:
 #   - swap (el droplet tiene 458 MB de RAM: sin swap, cualquier pico lo mata)
@@ -23,6 +23,9 @@
 set -euo pipefail
 
 LLAVE_DEPLOY="${1:-}"
+# Dominio del sitio. Sin el, nginx responde a cualquier nombre (util mientras
+# solo hay IP). Con el, certbot encuentra el bloque que tiene que asegurar.
+DOMINIO="${2:-}"
 DIR_APP="/opt/somos"
 DB_NOMBRE="somos_db"
 DB_USUARIO="somos_user"
@@ -175,6 +178,15 @@ ufw status
 # --- 7. Nginx --------------------------------------------------------------
 log "Nginx como reverse proxy"
 rm -f /etc/nginx/sites-enabled/default
+
+# Certbot reescribe este archivo al instalar el certificado: le agrega el
+# bloque 443 y el redirect. Volver a generarlo aqui borraria el HTTPS y
+# dejaria el sitio en texto plano sin que nadie se entere. El script se dice
+# idempotente, asi que tiene que respetarlo.
+if grep -q 'managed by Certbot' /etc/nginx/sites-available/somos 2>/dev/null; then
+  echo "  ya lo maneja certbot, no se toca"
+else
+
 cat > /etc/nginx/sites-available/somos <<NGINX
 # SOMOS — reverse proxy hacia el contenedor.
 # Hoy responde por IP. Cuando exista el dominio, certbot reescribe este archivo
@@ -182,7 +194,7 @@ cat > /etc/nginx/sites-available/somos <<NGINX
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name _;
+    server_name ${DOMINIO:-_};
 
     # Los comprobantes de transferencia son fotos de celular (hasta 8 MB).
     # Si nginx corta antes, el asistente ve un error sin explicacion.
@@ -202,6 +214,8 @@ server {
     }
 }
 NGINX
+fi
+
 ln -sf /etc/nginx/sites-available/somos /etc/nginx/sites-enabled/somos
 nginx -t
 systemctl enable --now nginx >/dev/null
@@ -220,6 +234,10 @@ if [ ! -f "$DIR_APP/.env" ]; then
   # APP_URL queda con una URL invalida (una IPv6 va entre corchetes). De
   # APP_URL sale el contenido de los QR: un error aca emite entradas rotas.
   IP_PUBLICA="$(curl -s -4 --max-time 5 https://ifconfig.me || hostname -I | awk '{print $1}')"
+  # Con dominio se asume https, porque el paso siguiente es certbot. Sin el,
+  # queda la IP y hay que corregirlo a mano cuando llegue el dominio.
+  URL_PUBLICA="${DOMINIO:+https://$DOMINIO}"
+  URL_PUBLICA="${URL_PUBLICA:-http://$IP_PUBLICA}"
   cat > "$DIR_APP/.env" <<ENVEOF
 # SOMOS — entorno de produccion. Generado por bootstrap-droplet.sh.
 # Este archivo es la unica copia de estos secretos. No se versiona.
@@ -229,7 +247,7 @@ JWT_SECRET="$JWT"
 
 # De aqui salen los QR y los links de los correos. Cambiar al dominio cuando
 # exista, junto con el certificado.
-APP_URL="http://$IP_PUBLICA"
+APP_URL="$URL_PUBLICA"
 
 UPLOADS_DIR="/app/data/comprobantes"
 UPLOAD_MAX_MB="8"
