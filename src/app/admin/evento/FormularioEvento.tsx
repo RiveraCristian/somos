@@ -16,6 +16,7 @@ export type DatosEvento = {
   ciudad: string;
   region: string;
   mapaUrl: string;
+  coordenadas: string;
   capacidad: string;
   estado: string;
   instagram: string;
@@ -202,8 +203,26 @@ export function FormularioEvento({ datos }: { datos: DatosEvento }) {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="campo">
+            <label className="campo-label" htmlFor="coordenadas">
+              Coordenadas
+            </label>
+            <input
+              id="coordenadas"
+              name="coordenadas"
+              maxLength={80}
+              defaultValue={datos.coordenadas}
+              className="campo-input"
+              placeholder="-35.438877, -71.602657"
+            />
+            <span className="campo-ayuda">
+              En Google Maps, click derecho sobre el punto y luego sobre las coordenadas para
+              copiarlas. De acá salen los botones “Cómo llegar” y “Waze” de la entrada.
+            </span>
+          </div>
+
+          <div className="campo">
             <label className="campo-label" htmlFor="mapaUrl">
-              Link del mapa
+              Link del mapa <span className="text-faint">(opcional)</span>
             </label>
             <input
               id="mapaUrl"
@@ -213,6 +232,9 @@ export function FormularioEvento({ datos }: { datos: DatosEvento }) {
               className="campo-input"
               placeholder="https://maps.google.com/…"
             />
+            <span className="campo-ayuda">
+              Si lo dejas, manda sobre las coordenadas.
+            </span>
           </div>
 
           <div className="campo">

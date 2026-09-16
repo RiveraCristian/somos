@@ -209,6 +209,8 @@ export default async function PaginaMiEntrada({
               direccion={evento.eventoDireccion}
               ciudad={evento.eventoCiudad}
               mapaUrl={evento.eventoMapaUrl}
+              latitud={evento.eventoLatitud}
+              longitud={evento.eventoLongitud}
             />
           )}
 

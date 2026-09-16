@@ -25,7 +25,13 @@ export const obtenerEventoPublico = cache(async () => {
     // Las vistas que si pueden mostrarla la piden por su propio camino
     // (obtenerAsistentePorToken / obtenerEntradaPorToken), y esas exigen un
     // token de entrada valido.
-    omit: { eventoVenue: true, eventoDireccion: true, eventoMapaUrl: true },
+    omit: {
+      eventoVenue: true,
+      eventoDireccion: true,
+      eventoMapaUrl: true,
+      eventoLatitud: true,
+      eventoLongitud: true,
+    },
     include: {
       tiposEntrada: {
         where: { tipoEntradaActivo: true },

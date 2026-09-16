@@ -87,6 +87,8 @@ export default async function PaginaEntrada({ params }: { params: Promise<{ toke
                 direccion={evento.eventoDireccion}
                 ciudad={evento.eventoCiudad}
                 mapaUrl={evento.eventoMapaUrl}
+                latitud={evento.eventoLatitud}
+                longitud={evento.eventoLongitud}
               />
             </div>
           </div>

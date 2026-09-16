@@ -71,6 +71,10 @@ export default async function PaginaEvento() {
             ciudad: evento.eventoCiudad,
             region: evento.eventoRegion ?? '',
             mapaUrl: evento.eventoMapaUrl ?? '',
+            coordenadas:
+              evento.eventoLatitud !== null && evento.eventoLongitud !== null
+                ? `${evento.eventoLatitud}, ${evento.eventoLongitud}`
+                : '',
             capacidad: String(evento.eventoCapacidad ?? ''),
             estado: evento.eventoEstado,
             instagram: evento.eventoInstagram ?? '',

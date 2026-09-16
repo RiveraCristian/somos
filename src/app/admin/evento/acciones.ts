@@ -7,6 +7,7 @@ import { COLORES_TIPO, ROLES_ADMIN, type ColorTipo } from '@/lib/constantes';
 import { desdeFechaLocal } from '@/lib/fechas';
 import { aSlug } from '@/lib/formato';
 import { prisma } from '@/lib/prisma';
+import { parsearCoordenadas } from '@/lib/ubicacion';
 import { esquemaEvento, primerError } from '@/lib/validaciones';
 
 export type EstadoEdicion = { error?: string; ok?: string };
@@ -41,6 +42,7 @@ export async function guardarEvento(
     ciudad: formulario.get('ciudad'),
     region: formulario.get('region'),
     mapaUrl: formulario.get('mapaUrl'),
+    coordenadas: formulario.get('coordenadas'),
     capacidad: formulario.get('capacidad') || 0,
     estado: formulario.get('estado'),
     instagram: formulario.get('instagram'),
@@ -59,6 +61,13 @@ export async function guardarEvento(
 
   const d = analisis.data;
 
+  // Un par mal escrito manda a la gente a otro continente: mejor rechazarlo
+  // que guardar un punto que nadie va a revisar hasta la noche del evento.
+  const punto = parsearCoordenadas(d.coordenadas);
+  if (punto === false) {
+    return { error: 'Las coordenadas no se entienden. Pega el par tal como lo copias de Google Maps: -35.438877, -71.602657' };
+  }
+
   try {
     await prisma.evento.update({
       where: { eventoId },
@@ -72,6 +81,8 @@ export async function guardarEvento(
         eventoCiudad: d.ciudad,
         eventoRegion: d.region || null,
         eventoMapaUrl: d.mapaUrl || null,
+        eventoLatitud: punto ? punto.lat : null,
+        eventoLongitud: punto ? punto.lon : null,
         eventoCapacidad: d.capacidad || null,
         eventoEstado: d.estado,
         eventoInstagram: d.instagram ? d.instagram.replace(/^@/, '') : null,

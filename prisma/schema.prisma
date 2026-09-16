@@ -112,6 +112,11 @@ model Evento {
   eventoCiudad       String    @map("evento_ciudad") @db.VarChar(120)
   eventoRegion       String?   @map("evento_region") @db.VarChar(120)
   eventoMapaUrl      String?   @map("evento_mapa_url") @db.VarChar(500)
+  /// Coordenadas del recinto. El lugar es rural y no siempre tiene direccion
+  /// postal util: con el pin exacto, el mapa lleva a la puerta y no a una
+  /// busqueda por texto que puede caer a kilometros.
+  eventoLatitud      Float?    @map("evento_latitud")
+  eventoLongitud     Float?    @map("evento_longitud")
   eventoCapacidad    Int?      @map("evento_capacidad")
   /// borrador | publicado | cerrado | finalizado
   eventoEstado       String    @default("borrador") @map("evento_estado") @db.VarChar(30)

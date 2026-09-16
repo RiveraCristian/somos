@@ -135,6 +135,8 @@ export async function confirmarPagoYEmitir(
         mapaUrl: enlaceDeMapa({
           mapaUrl: evento.eventoMapaUrl,
           direccion: evento.eventoDireccion,
+          latitud: evento.eventoLatitud,
+          longitud: evento.eventoLongitud,
           venue: evento.eventoVenue,
           ciudad: evento.eventoCiudad,
         }),

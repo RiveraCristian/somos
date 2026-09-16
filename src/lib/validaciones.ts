@@ -74,6 +74,7 @@ export const esquemaEvento = z.object({
   ciudad: textoLimpio(120).min(2, 'Falta la ciudad.'),
   region: textoLimpio(120).optional().or(z.literal('')),
   mapaUrl: textoLimpio(500).optional().or(z.literal('')),
+  coordenadas: textoLimpio(80).optional().or(z.literal('')),
   capacidad: z.coerce.number().int().min(0).max(100_000).optional(),
   estado: z.enum(['borrador', 'publicado', 'cerrado', 'finalizado']),
   instagram: textoLimpio(120).optional().or(z.literal('')),
