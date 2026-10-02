@@ -20,7 +20,7 @@ La venta de entradas se divide en tres etapas progresivas de precio. **No hay to
 ### 3. ¿Cómo funciona el proceso de pago y reserva?
 El proceso consta de tres sencillos pasos [3]:
 1.  **Selección:** Eliges tu entrada en el sitio web, ingresas tu nombre y correo electrónico, y el sistema te la reserva de inmediato [3].
-2.  **Pago:** Puedes realizar el pago mediante transferencia electrónica fluida y segura a través de **Fintoc** (aprobando la transacción desde tu banco sin salir de la página) [3]. Si lo prefieres, también puedes hacer una transferencia tradicional desde la app de tu banco y subir la captura de pantalla del comprobante a nuestro sitio [3].
+2.  **Pago:** El cobro se realiza a través de **Flow**, que acepta tarjetas de crédito y débito y transferencia bancaria. Te llevamos a Flow para pagar y vuelves al sitio automáticamente [3].
 3.  **Confirmación y QR:** Una vez confirmado el pago, tu entrada con un **código QR único** aparecerá en pantalla y se enviará automáticamente a tu correo electrónico [3].
 
 ---
@@ -58,4 +58,4 @@ Al tratarse de una reunión estrictamente privada, autogestionada y sin fines de
 *   **Seguridad y Salud:** Los organizadores quedan exentos de responsabilidad civil por cualquier tipo de lesión, accidente o percance de salud derivado de la propia imprudencia de los asistentes o el comportamiento de terceros dentro del recinto de propiedad privada [exención-responsabilidad].
 *   **Pertenencias:** Te recomendamos cuidar tus objetos personales. La organización no se responsabiliza por la pérdida, hurto, robo o daño de vestuario, dispositivos electrónicos, vehículos o cualquier otro bien material dentro o en las cercanías del recinto [exención-responsabilidad].
 
-Al reservar, pagar tu entrada (vía Fintoc o carga de comprobante) y recibir tu código QR, aceptas de forma expresa y plena estas condiciones de convivencia y exención de responsabilidad civil [3, exención-responsabilidad].
+Al reservar, pagar tu entrada a través de Flow y recibir tu código QR, aceptas de forma expresa y plena estas condiciones de convivencia y exención de responsabilidad civil [3, exención-responsabilidad].

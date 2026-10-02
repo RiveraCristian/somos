@@ -458,7 +458,7 @@ model Escaneo {
 // ---------------------------------------------------------------------------
 model Webhook {
   webhookId         Int      @id @default(autoincrement()) @map("webhook_id")
-  /// fintoc | mercadopago
+  /// fintoc | mercadopago | flow
   webhookProveedor  String   @map("webhook_proveedor") @db.VarChar(30)
   /// Id del evento en el proveedor. Unico: es la llave de deduplicacion.
   /// Se guarda prefijado con el proveedor para que dos pasarelas no choquen.

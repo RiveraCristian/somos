@@ -1,6 +1,7 @@
 import { USUARIO_SISTEMA_ID } from './constantes';
 import { confirmarPagoYEmitir } from './emision';
 import { obtenerSesionCheckout, sesionPagada } from './fintoc';
+import { obtenerEstadoFlow, pagoFlowFallido, pagoFlowPagado } from './flow';
 import { obtenerPagoMercadoPago, pagoAprobado, pagoFallido } from './mercadopago';
 import { pasarelaActiva } from './pasarela';
 import { prisma } from './prisma';
@@ -43,6 +44,24 @@ async function consultarFintoc(pago: PagoPendiente): Promise<Consulta> {
 
   if (sesionPagada(sesion)) return { veredicto: 'cobrado', idExterno };
   if (sesion.status === 'expired') return { veredicto: 'fallido', idExterno };
+  return { veredicto: 'en_curso', idExterno };
+}
+
+/**
+ * Flow no tiene webhook firmado, asi que la conciliacion pesa mas aca que en
+ * las otras dos: es el mismo getStatus que usa la confirmacion, y es la unica
+ * fuente de verdad del cobro.
+ */
+async function consultarFlow(pago: PagoPendiente): Promise<Consulta> {
+  if (!pago.pagoExternoSesion) return { veredicto: 'en_curso' };
+
+  const estado = await obtenerEstadoFlow(pago.pagoExternoSesion);
+  if (!estado) return { veredicto: 'en_curso' };
+
+  const idExterno = estado.flowOrder ? String(estado.flowOrder) : undefined;
+
+  if (pagoFlowPagado(estado)) return { veredicto: 'cobrado', idExterno };
+  if (pagoFlowFallido(estado)) return { veredicto: 'fallido', idExterno };
   return { veredicto: 'en_curso', idExterno };
 }
 
@@ -109,7 +128,11 @@ export async function conciliarPagosPasarela(
 
   for (const pago of pendientes) {
     const { veredicto, idExterno } =
-      pasarela === 'fintoc' ? await consultarFintoc(pago) : await consultarMercadoPago(pago);
+      pasarela === 'fintoc'
+        ? await consultarFintoc(pago)
+        : pasarela === 'flow'
+          ? await consultarFlow(pago)
+          : await consultarMercadoPago(pago);
 
     // Se guarda antes de cerrar el cobro: si algo falla mas abajo, al menos
     // queda por donde seguirle la pista al dinero.

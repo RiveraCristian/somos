@@ -121,7 +121,7 @@ async function main() {
 
       // Datos de cobro: reemplazalos por los tuyos desde /admin/evento.
       // Cuenta de respaldo, para quien transfiere por su cuenta en vez de usar
-      // el widget. El cobro normal va por Fintoc y deposita donde diga su panel.
+      // el widget. El cobro normal va por la pasarela, que deposita donde diga su panel.
       eventoCuentaNombre: 'Nombre del organizador',
       eventoCuentaRut: '12.345.678-9',
       eventoCuentaCorreo: 'organizador@correo.cl',
@@ -288,7 +288,7 @@ async function main() {
       ],
       [
         '¿Cómo pago?',
-        'Eliges tu entrada, dejas tu nombre y correo, y te la reservamos al tiro. Después pagas con Fintoc: eliges tu banco y apruebas la transferencia sin salir de la página. Si tu banco no aparece o algo falla, puedes transferir por tu cuenta y subir la captura del comprobante. Apenas se confirma el pago, tu entrada con QR aparece en pantalla y te llega al correo.',
+        'Eliges tu entrada, dejas tu nombre y correo, y te la reservamos al tiro. Después te llevamos a Flow para pagar: acepta tarjetas de crédito y débito y transferencia bancaria. Apenas se confirma el pago vuelves al sitio, tu entrada con QR aparece en pantalla y te llega al correo.',
       ],
       [
         '¿Cuándo y a qué hora es?',

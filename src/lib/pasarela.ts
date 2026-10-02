@@ -1,13 +1,15 @@
 import { fintocHabilitado, verificarCredencialesFintoc } from './fintoc';
+import { flowHabilitado, verificarCredencialesFlow } from './flow';
 import { mercadoPagoHabilitado, verificarCredencialesMp } from './mercadopago';
 import { MODO_VITRINA } from './vitrina';
 
-export const PASARELAS = ['fintoc', 'mercadopago'] as const;
+export const PASARELAS = ['fintoc', 'mercadopago', 'flow'] as const;
 export type Pasarela = (typeof PASARELAS)[number];
 
 export const ETIQUETAS_PASARELA: Record<Pasarela, string> = {
   fintoc: 'Fintoc',
   mercadopago: 'Mercado Pago',
+  flow: 'Flow',
 };
 
 /**
@@ -35,6 +37,10 @@ export function pasarelaActiva(): Pasarela | null {
 
   if (elegida === 'mercadopago') {
     return mercadoPagoHabilitado() ? 'mercadopago' : null;
+  }
+
+  if (elegida === 'flow') {
+    return flowHabilitado() ? 'flow' : null;
   }
 
   return null;
@@ -72,7 +78,9 @@ export function estadoPasarela(): {
       problema:
         elegida === 'fintoc'
           ? 'Faltan FINTOC_SECRET_KEY o FINTOC_PUBLIC_KEY.'
-          : 'Faltan MERCADOPAGO_ACCESS_TOKEN o MERCADOPAGO_PUBLIC_KEY.',
+          : elegida === 'flow'
+            ? 'Faltan FLOW_API_KEY o FLOW_SECRET_KEY.'
+            : 'Faltan MERCADOPAGO_ACCESS_TOKEN o MERCADOPAGO_PUBLIC_KEY.',
     };
   }
 
@@ -105,6 +113,20 @@ export async function diagnosticoPasarela(): Promise<{
           ...base,
           problema: null,
           detalle: `Conectado a ${check.cuenta} · credenciales de ${check.modo}`,
+        }
+      : { ...base, activa: null, problema: check.problema, detalle: null };
+  }
+
+  if (base.activa === 'flow') {
+    const check = verificarCredencialesFlow();
+    return check.ok
+      ? {
+          ...base,
+          problema: null,
+          detalle:
+            check.ambiente === 'produccion'
+              ? 'Ambiente de PRODUCCION: los cobros son reales.'
+              : 'Ambiente de pruebas (sandbox). No se mueve plata de verdad.',
         }
       : { ...base, activa: null, problema: check.problema, detalle: null };
   }

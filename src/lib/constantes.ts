@@ -30,6 +30,7 @@ export const METODOS_PAGO = [
   'efectivo',
   'fintoc',
   'mercadopago',
+  'flow',
   'otro',
 ] as const;
 export type MetodoPago = (typeof METODOS_PAGO)[number];
@@ -42,6 +43,7 @@ export const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   efectivo: 'Efectivo',
   fintoc: 'Transferencia con Fintoc',
   mercadopago: 'Tarjeta (Mercado Pago)',
+  flow: 'Flow',
   otro: 'Otro',
 };
 

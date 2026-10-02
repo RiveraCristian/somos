@@ -29,4 +29,4 @@ Al adquirir su entrada y/o ingresar al recinto privado del evento, el asistente 
 4.3. **Cuidado del Entorno:** Al tratarse de un espacio privado y un entorno comunitario, los asistentes deben colaborar activamente con la limpieza y preservación del lugar, utilizando los contenedores habilitados para los residuos.
 
 ### 5. Aceptación de los Términos
-La adquisición de la entrada a través del proceso de reserva, la transferencia de fondos (ya sea vía Fintoc o transferencia bancaria directa) y la posterior recepción del código QR constituyen la aceptación expresa, plena y sin reservas de la totalidad de las cláusulas aquí descritas.
+La adquisición de la entrada a través del proceso de reserva, el pago a través de la pasarela habilitada en el sitio y la posterior recepción del código QR constituyen la aceptación expresa, plena y sin reservas de la totalidad de las cláusulas aquí descritas.

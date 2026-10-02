@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Clock,
+  CreditCard,
   HeartHandshake,
   Lock,
   MapPin,
@@ -26,7 +27,7 @@ import { Logo } from '@/components/marca/Logo';
 import { paletaDeTipo } from '@/lib/constantes';
 import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
 import { etapaVigente, listarEtapas } from '@/lib/etapas';
-import { pasarelaActiva } from '@/lib/pasarela';
+import { pasarelaActiva, type Pasarela } from '@/lib/pasarela';
 import { fechaLarga, hora, numero, pesos } from '@/lib/formato';
 import { urlDeLogo } from '@/lib/archivos';
 import { UBICACION_SECRETA } from '@/lib/ubicacion';
@@ -64,32 +65,56 @@ const REGLAS = [
   },
 ];
 
-function pasos(enLinea: boolean) {
+/**
+ * Los tres pasos de la compra.
+ *
+ * El del medio depende de la pasarela, porque la experiencia es distinta de
+ * verdad: con Flow uno se va a pagar y vuelve; con Fintoc el banco se aprueba
+ * sin salir del sitio. Prometer lo que no es deja a la gente esperando una
+ * pantalla que nunca aparece.
+ */
+function pasos(pasarela: Pasarela | null) {
+  const pagar =
+    pasarela === 'flow'
+      ? {
+          icono: <CreditCard size={18} />,
+          titulo: 'Pagas con Flow',
+          texto:
+            'Te llevamos a Flow, pagas con tarjeta, débito o transferencia, y vuelves solo.',
+        }
+      : pasarela === 'fintoc'
+        ? {
+            icono: <Zap size={18} />,
+            titulo: 'Pagas ahí mismo',
+            texto:
+              'Eliges tu banco y apruebas la transferencia sin salir de la página, con Fintoc.',
+          }
+        : pasarela === 'mercadopago'
+          ? {
+              icono: <CreditCard size={18} />,
+              titulo: 'Pagas con tarjeta',
+              texto: 'Pagas con tu tarjeta acá mismo, sin salir de la página.',
+            }
+          : {
+              icono: <Upload size={18} />,
+              titulo: 'Pagas tu entrada',
+              texto:
+                'El cobro en línea está fuera en este momento. Tu reserva queda guardada y te avisamos apenas vuelva.',
+            };
+
   return [
     {
       icono: <Users size={18} />,
       titulo: 'Eliges tu entrada',
       texto: 'Dejas tu nombre y correo, y te la reservamos al tiro.',
     },
-    enLinea
-      ? {
-          icono: <Zap size={18} />,
-          titulo: 'Pagas ahí mismo',
-          texto:
-            'Eliges tu banco y apruebas la transferencia sin salir de la página, con Fintoc. Si prefieres, también puedes transferir por tu cuenta y subir la captura.',
-        }
-      : {
-          icono: <Upload size={18} />,
-          titulo: 'Pagas por transferencia',
-          texto:
-            'Transfieres el valor de tu entrada a nuestra cuenta y subes la captura de la transferencia.',
-        },
+    pagar,
     {
       icono: <QrCode size={18} />,
       titulo: 'Te llega tu QR',
-      texto: enLinea
+      texto: pasarela
         ? 'Apenas se confirma el pago tu entrada aparece en pantalla y te llega por correo.'
-        : 'Revisamos el comprobante a mano. Al confirmarlo emitimos tu entrada y te la mandamos por correo.',
+        : 'Cuando el pago se confirme, emitimos tu entrada y te la mandamos por correo.',
     },
   ];
 }
@@ -313,7 +338,7 @@ export default async function PaginaInicio() {
             </div>
 
             <Escalonado className="flex flex-col gap-5" intervalo={0.11}>
-              {pasos(pasarelaActiva() !== null).map((paso, i) => (
+              {pasos(pasarelaActiva()).map((paso, i) => (
                 <ItemEscalonado key={paso.titulo} className="tarjeta-solida flex gap-4 p-5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line-fuerte bg-white/[0.04] text-cyan">
                     {paso.icono}

@@ -163,7 +163,7 @@ const SECCIONES: Seccion[] = [
       {
         titulo: '',
         parrafos: [
-          'La adquisición de la entrada a través del proceso de reserva, la transferencia de fondos (ya sea vía Fintoc o transferencia bancaria directa) y la posterior recepción del código QR constituyen la aceptación expresa, plena y sin reservas de la totalidad de las cláusulas aquí descritas.',
+          'La adquisición de la entrada a través del proceso de reserva, el pago a través de la pasarela habilitada en el sitio y la posterior recepción del código QR constituyen la aceptación expresa, plena y sin reservas de la totalidad de las cláusulas aquí descritas.',
         ],
       },
     ],

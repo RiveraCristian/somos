@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { conciliarPagosPasarela } from '@/lib/conciliacion';
 import { USUARIO_SISTEMA_ID } from '@/lib/constantes';
 import { crearSesionCheckout, obtenerSesionCheckout } from '@/lib/fintoc';
+import { crearPagoFlow, nuevaOrdenComercio, urlDeCheckout } from '@/lib/flow';
 import { cobrarConMercadoPago, pagoAprobado, pagoFallido } from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
 import { prisma } from '@/lib/prisma';
@@ -290,3 +291,83 @@ export async function verificarPagoEnLinea(token: string): Promise<EstadoVerific
 // ---------------------------------------------------------------------------
 // Transferencia manual con comprobante
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Flow: se crea la orden y se manda al comprador a flow.cl
+// ---------------------------------------------------------------------------
+
+export type EstadoCobroFlow = { error?: string; url?: string };
+
+/**
+ * Arranca un cobro con Flow.
+ *
+ * A diferencia de Fintoc y Mercado Pago, aca no hay widget: Flow devuelve una
+ * URL y el comprador se va a pagar alla. Por eso esta accion devuelve la URL en
+ * vez de un token de sesion, y es el cliente el que navega.
+ *
+ * El pago queda en `pendiente`. Quien lo confirma es la confirmacion de Flow o
+ * la conciliacion — nunca el regreso del comprador al sitio, que no prueba nada:
+ * volver de Flow solo significa que el navegador volvio.
+ */
+export async function iniciarPagoFlow(
+  _previo: EstadoCobroFlow,
+  formulario: FormData,
+): Promise<EstadoCobroFlow> {
+  if (pasarelaActiva() !== 'flow') {
+    return { error: 'El pago en línea no está disponible ahora mismo.' };
+  }
+
+  const token = String(formulario.get('token') ?? '');
+  const situacion = await situacionDeCobro(token);
+  if (!situacion.ok) return { error: situacion.error };
+
+  const { asistente, saldo } = situacion;
+
+  // Flow exige que urlConfirmation sea alcanzable desde internet. En local no
+  // lo es, y en vez de fallar con un error de Flow que no se entiende, se dice
+  // aca lo que pasa. El cobro igual se cierra por conciliacion al volver.
+  const base = urlBase();
+  if (!base.startsWith('https://')) {
+    return {
+      error:
+        'Flow necesita que el sitio tenga HTTPS público para confirmar el pago. ' +
+        'En desarrollo local no se puede cobrar con Flow.',
+    };
+  }
+
+  const ordenComercio = nuevaOrdenComercio(asistente.asistenteId);
+
+  try {
+    const creado = await crearPagoFlow({
+      ordenComercio,
+      monto: saldo,
+      asunto: `Entrada ${asistente.tipoEntrada.tipoEntradaNombre} · ${asistente.evento.eventoNombre}`,
+      correo: asistente.asistenteCorreo,
+      urlConfirmacion: `${base}/api/webhooks/flow`,
+      urlRetorno: `${base}/mi-entrada/${token}?pago=volvio`,
+    });
+
+    await prisma.pago.create({
+      data: {
+        pagoAsistenteId: asistente.asistenteId,
+        pagoMonto: saldo,
+        pagoMetodo: 'flow',
+        pagoProveedor: 'flow',
+        pagoEstado: 'pendiente',
+        // El token de Flow es la llave para consultar el estado y para
+        // reconocer su confirmacion. Es unico por intento.
+        pagoExternoSesion: creado.token,
+        pagoExternoPago: String(creado.flowOrder),
+        pagoReferencia: ordenComercio,
+        createdBy: USUARIO_SISTEMA_ID,
+      },
+    });
+
+    revalidatePath(`/mi-entrada/${token}`);
+
+    return { url: urlDeCheckout(creado) };
+  } catch (e) {
+    console.error('[flow] no se pudo crear la orden:', e);
+    return { error: 'No pudimos abrir el pago. Intenta de nuevo en un momento.' };
+  }
+}

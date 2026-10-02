@@ -26,6 +26,7 @@ import { clavePublicaMercadoPago } from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
 
 import { BotonPagarEnLinea } from './BotonPagarEnLinea';
+import { BotonPagarFlow } from './BotonPagarFlow';
 import { PagoMercadoPago } from './PagoMercadoPago';
 
 export const dynamic = 'force-dynamic';
@@ -225,7 +226,9 @@ export default async function PaginaMiEntrada({
               <p className="mt-3 mb-6 leading-relaxed text-dim">
                 {pasarela === 'fintoc'
                   ? 'Transferencia directa desde tu banco, sin salir de esta página. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'
-                  : 'Paga con tu tarjeta acá mismo. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'}
+                  : pasarela === 'flow'
+                    ? 'Paga con tarjeta, débito o transferencia a través de Flow. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'
+                    : 'Paga con tu tarjeta acá mismo. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'}
               </p>
 
               {pasarela === 'fintoc' ? (
@@ -234,6 +237,8 @@ export default async function PaginaMiEntrada({
                   monto={saldo}
                   clavePublica={clavePublicaFintoc()}
                 />
+              ) : pasarela === 'flow' ? (
+                <BotonPagarFlow token={asistente.asistenteToken} monto={saldo} />
               ) : (
                 <PagoMercadoPago
                   token={asistente.asistenteToken}
@@ -245,8 +250,9 @@ export default async function PaginaMiEntrada({
 
               <p className="mt-5 flex items-start gap-2.5 text-xs leading-relaxed text-faint">
                 <ShieldCheck size={14} className="mt-0.5 shrink-0 text-ok" />
-                Te conectas con tu propio banco. Nosotros nunca vemos tus claves ni los datos de
-                tu cuenta.
+                {pasarela === 'flow'
+                  ? 'El pago ocurre en Flow. Nosotros nunca vemos los datos de tu tarjeta ni las claves de tu banco.'
+                  : 'Te conectas con tu propio banco. Nosotros nunca vemos tus claves ni los datos de tu cuenta.'}
               </p>
             </section>
           )}
