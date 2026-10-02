@@ -122,6 +122,31 @@ export function nuevaOrdenComercio(asistenteId: number): string {
   return `somos-${asistenteId}-${randomBytes(4).toString('hex')}`;
 }
 
+/** Codigos de Flow que vale la pena distinguir. */
+export const CODIGO_FLOW = {
+  /** Flow no acepta el correo del pagador. Reintentar no lo arregla. */
+  correoInvalido: 1620,
+} as const;
+
+/**
+ * Error de la API de Flow, con su codigo.
+ *
+ * Existe para poder separar "esto lo arregla el comprador" de "esto lo
+ * arreglamos nosotros". Sin el codigo, todo termina en el mismo "intenta de
+ * nuevo", que para un correo rechazado es un consejo falso: por mas veces que
+ * lo intente, va a fallar igual.
+ */
+export class ErrorFlow extends Error {
+  constructor(
+    mensaje: string,
+    readonly codigo: number | null,
+    readonly httpStatus: number,
+  ) {
+    super(mensaje);
+    this.name = 'ErrorFlow';
+  }
+}
+
 async function pedir<T>(ruta: string, parametros: Record<string, string>, metodo: 'GET' | 'POST') {
   const firmados = { ...parametros, apiKey: apiKey() };
   const cuerpo = new URLSearchParams({ ...firmados, s: firmar(firmados) });
@@ -142,16 +167,20 @@ async function pedir<T>(ruta: string, parametros: Record<string, string>, metodo
   const texto = await respuesta.text();
 
   if (!respuesta.ok) {
-    // Flow responde los errores como JSON con `code` y `message`. Se intenta
-    // leerlos: "400 Bad Request" a secas no le sirve a nadie para arreglarlo.
-    let detalle = texto.slice(0, 300);
+    // Flow responde los errores como JSON con `code` y `message`. Se conservan
+    // los dos: "400 Bad Request" a secas no le sirve a nadie, y el codigo es lo
+    // unico que permite distinguir un problema que el comprador puede arreglar
+    // de uno nuestro.
+    let mensaje = texto.slice(0, 300);
+    let codigo: number | null = null;
     try {
       const json = JSON.parse(texto) as { message?: string; code?: number };
-      if (json.message) detalle = `${json.message}${json.code ? ` (codigo ${json.code})` : ''}`;
+      if (json.message) mensaje = json.message;
+      if (typeof json.code === 'number') codigo = json.code;
     } catch {
       /* se queda con el texto crudo */
     }
-    throw new Error(`Flow respondio ${respuesta.status}: ${detalle}`);
+    throw new ErrorFlow(mensaje, codigo, respuesta.status);
   }
 
   return JSON.parse(texto) as T;

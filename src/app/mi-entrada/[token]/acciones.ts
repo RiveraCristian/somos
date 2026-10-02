@@ -5,7 +5,13 @@ import { revalidatePath } from 'next/cache';
 import { conciliarPagosPasarela } from '@/lib/conciliacion';
 import { USUARIO_SISTEMA_ID } from '@/lib/constantes';
 import { crearSesionCheckout, obtenerSesionCheckout } from '@/lib/fintoc';
-import { crearPagoFlow, nuevaOrdenComercio, urlDeCheckout } from '@/lib/flow';
+import {
+  CODIGO_FLOW,
+  ErrorFlow,
+  crearPagoFlow,
+  nuevaOrdenComercio,
+  urlDeCheckout,
+} from '@/lib/flow';
 import { cobrarConMercadoPago, pagoAprobado, pagoFallido } from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
 import { prisma } from '@/lib/prisma';
@@ -368,6 +374,18 @@ export async function iniciarPagoFlow(
     return { url: urlDeCheckout(creado) };
   } catch (e) {
     console.error('[flow] no se pudo crear la orden:', e);
+
+    // Flow valida el correo del pagador y rechaza algunos. Decir "intenta de
+    // nuevo" ahi es un consejo falso: por mas veces que lo intente va a fallar
+    // igual. Hay que mandarlo a cambiar el correo, que es lo unico que sirve.
+    if (e instanceof ErrorFlow && e.codigo === CODIGO_FLOW.correoInvalido) {
+      return {
+        error:
+          `Flow no acepta el correo ${asistente.asistenteCorreo} para cobrar. ` +
+          'Escríbenos por Instagram y te cambiamos el correo de tu entrada.',
+      };
+    }
+
     return { error: 'No pudimos abrir el pago. Intenta de nuevo en un momento.' };
   }
 }
