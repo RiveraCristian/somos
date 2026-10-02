@@ -6,6 +6,7 @@ import { EncabezadoPagina } from '@/components/admin/EncabezadoPagina';
 import { fechaHora, numero, pesos } from '@/lib/formato';
 import { prisma } from '@/lib/prisma';
 
+import { AccionesReserva } from './AccionesReserva';
 import { PagoManual } from './PagoManual';
 
 export const dynamic = 'force-dynamic';
@@ -159,15 +160,27 @@ export default async function PaginaAsistentes({
 
                   <td className="dato px-5 py-3.5 align-top text-xs text-dim">{fechaHora(a.createdAt)}</td>
 
-                  {/* Valvula de escape: pagos que llegaron por fuera de la pasarela. */}
+                  {/* Dos valvulas de escape: registrar un pago que llego por
+                      fuera de la pasarela, y liberar a quien quedo trabado por
+                      una reserva que nunca pago. */}
                   <td className="px-5 py-3.5 align-top">
-                    {!a.entrada && a.asistenteEstado !== 'anulado' && (
-                      <PagoManual
-                        asistenteId={a.asistenteId}
-                        nombre={a.asistenteNombre}
-                        precio={a.asistentePrecio}
-                      />
-                    )}
+                    <div className="flex flex-col items-start gap-2">
+                      {!a.entrada && a.asistenteEstado !== 'anulado' && (
+                        <PagoManual
+                          asistenteId={a.asistenteId}
+                          nombre={a.asistenteNombre}
+                          precio={a.asistentePrecio}
+                        />
+                      )}
+
+                      {!a.entrada && (
+                        <AccionesReserva
+                          asistenteId={a.asistenteId}
+                          nombre={a.asistenteNombre}
+                          anulada={a.asistenteEstado === 'anulado'}
+                        />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

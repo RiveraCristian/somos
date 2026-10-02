@@ -75,11 +75,16 @@ export async function reservarEntrada(
   }
 
   // ¿Ya había comprado con ese correo?
+  //
+  // Las anuladas no cuentan: anular una reserva existe justamente para que esa
+  // persona pueda volver a comprar. Si siguieran bloqueando, el boton del panel
+  // pareceria funcionar sin funcionar.
   const existente = await prisma.asistente.findFirst({
     where: {
       asistenteEventoId: evento.eventoId,
       asistenteCorreo: datos.correo,
       isDeleted: false,
+      asistenteEstado: { not: 'anulado' },
     },
     include: { tipoEntrada: true },
   });
@@ -177,7 +182,7 @@ export async function reenviarLink(
   }
 
   const asistente = await prisma.asistente.findFirst({
-    where: { asistenteCorreo: correo, isDeleted: false },
+    where: { asistenteCorreo: correo, isDeleted: false, asistenteEstado: { not: 'anulado' } },
     include: { evento: true, tipoEntrada: true },
   });
 

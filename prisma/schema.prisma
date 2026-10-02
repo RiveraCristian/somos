@@ -321,7 +321,10 @@ model Asistente {
   pagos   Pago[]
   entrada Entrada?
 
-  @@unique([asistenteEventoId, asistenteCorreo])
+  /// El unique de (evento, correo) vive en SQL y no aca: es PARCIAL, solo
+  /// sobre las reservas vivas, para que anular una libere el correo. Prisma no
+  /// sabe expresar indices parciales. Ver la migracion 0009.
+  @@index([asistenteEventoId, asistenteCorreo])
   @@index([asistenteEventoId])
   @@index([asistenteEstado])
   /// El telefono es la credencial de invitacion: se consulta en cada compra
