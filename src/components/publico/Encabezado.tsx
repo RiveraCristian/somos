@@ -5,7 +5,7 @@ import { Logo } from '@/components/marca/Logo';
 const ENLACES = [
   { href: '/#entradas', texto: 'Entradas' },
   { href: '/#como-funciona', texto: 'Cómo funciona' },
-  { href: '/#lineup', texto: 'Line-up' },
+  { href: '/#lineup', texto: 'Música' },
   { href: '/#preguntas', texto: 'Preguntas' },
 ];
 

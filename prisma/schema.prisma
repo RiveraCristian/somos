@@ -73,6 +73,8 @@ model Usuario {
   invitadosEliminados      Invitado[]          @relation("InvitadoEliminador")
   auspiciadoresCreados     Auspiciador[]       @relation("AuspiciadorCreador")
   auspiciadoresModificados Auspiciador[]       @relation("AuspiciadorModificador")
+  fotosCreadas             Foto[]              @relation("FotoCreador")
+  fotosModificadas         Foto[]              @relation("FotoModificador")
 
   @@map("usuarios")
 }
@@ -152,6 +154,7 @@ model Evento {
   artistas      Artista[]
   preguntas     PreguntaFrecuente[]
   auspiciadores Auspiciador[]
+  fotos         Foto[]
   asistentes    Asistente[]
   etapas        EtapaVenta[]
   invitados     Invitado[]
@@ -276,6 +279,36 @@ model Auspiciador {
 
   @@index([auspiciadorEventoId])
   @@map("auspiciadores")
+}
+
+// ---------------------------------------------------------------------------
+// Galeria de fotos de eventos anteriores
+//
+// Las sube el organizador desde el panel y se sirven por /api/foto/<archivo>,
+// igual que los logos: agregar una foto no deberia costar un despliegue.
+// ---------------------------------------------------------------------------
+model Foto {
+  fotoId       Int     @id @default(autoincrement()) @map("foto_id")
+  fotoEventoId Int     @map("foto_evento_id")
+  /// Nombre del archivo guardado, no una ruta: la ruta la arma el servidor.
+  fotoArchivo  String  @map("foto_archivo") @db.VarChar(200)
+  /// Texto alternativo. Sin esto la galeria no existe para un lector de pantalla.
+  fotoAlt      String? @map("foto_alt") @db.VarChar(200)
+  fotoOrden    Int     @default(0) @map("foto_orden")
+  fotoActiva   Boolean @default(true) @map("foto_activa")
+
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedBy Int?     @map("modified_by")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  evento      Evento   @relation(fields: [fotoEventoId], references: [eventoId])
+  creador     Usuario  @relation("FotoCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("FotoModificador", fields: [modifiedBy], references: [usuarioId])
+
+  @@unique([fotoEventoId, fotoArchivo])
+  @@index([fotoEventoId])
+  @@map("fotos")
 }
 
 // ---------------------------------------------------------------------------

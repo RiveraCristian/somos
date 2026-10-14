@@ -4,6 +4,7 @@ import {
   Clock,
   CreditCard,
   HeartHandshake,
+  Instagram,
   Lock,
   MapPin,
   QrCode,
@@ -29,7 +30,7 @@ import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
 import { etapaVigente, listarEtapas } from '@/lib/etapas';
 import { pasarelaActiva, type Pasarela } from '@/lib/pasarela';
 import { fechaLarga, hora, numero, pesos } from '@/lib/formato';
-import { urlDeLogo } from '@/lib/archivos';
+import { urlDeFoto, urlDeLogo } from '@/lib/archivos';
 import { UBICACION_SECRETA } from '@/lib/ubicacion';
 
 // El stock de entradas cambia en vivo: nunca se cachea la pagina.
@@ -358,77 +359,93 @@ export default async function PaginaInicio() {
         </Aparecer>
       </section>
 
-      {/* -------------------------------------------------------------- LINEUP */}
+      {/* -------------------------------------------------------------- MUSICA */}
       {evento.artistas.length > 0 && (
         <section id="lineup" className="contenedor scroll-mt-24 py-16">
           <EncabezadoSeccion
-            etiqueta="Line-up"
-            titulo="Quién toca"
-            descripcion="Cómo se mueve la noche. Los nombres se van confirmando a medida que se acerca la fecha."
+            etiqueta="Música"
+            titulo="Qué suena"
+            descripcion="Los estilos que van a sonar durante toda la noche."
           />
 
-          {/* Una linea de tiempo y no una grilla de tarjetas: lo que importa
-              acá es el orden en que pasan las cosas, y una grilla lo esconde. */}
-          <Escalonado className="flex flex-col">
-            {evento.artistas.map((artista, i) => {
+          {/* Sin horarios y sin orden: no es una parrilla, son los estilos que
+              cruzan la noche entera. Una grilla lo dice; una linea de tiempo
+              prometeria una secuencia que no existe. */}
+          <Escalonado className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {evento.artistas.map((artista) => {
               const porConfirmar = /por (confirmar|anunciar)/i.test(artista.artistaNombre);
-              // Mientras el artista no esté cerrado, el estilo es lo unico
-              // concreto que hay para mostrar: va de titulo.
-              const titulo = porConfirmar
-                ? (artista.artistaGenero ?? artista.artistaNombre)
-                : artista.artistaNombre;
-              const bajada = porConfirmar
-                ? 'Artista por confirmar'
-                : artista.artistaGenero;
+              const estilo = artista.artistaGenero ?? artista.artistaNombre;
 
               return (
-                <ItemEscalonado key={artista.artistaId}>
-                  <article
-                    className={`grid gap-x-6 gap-y-2 py-6 sm:grid-cols-[9rem_1fr] ${
-                      i > 0 ? 'border-t border-line' : ''
-                    }`}
-                  >
-                    <div className="dato text-sm text-cyan">
-                      {artista.artistaHoraInicio ? (
-                        <>
-                          {hora(artista.artistaHoraInicio)}
-                          {artista.artistaHoraTermino && (
-                            <span className="text-faint">
-                              {' '}
-                              — {hora(artista.artistaHoraTermino)}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-faint">Horario por definir</span>
-                      )}
-                    </div>
+                <ItemEscalonado key={artista.artistaId} className="h-full">
+                  <article className="tarjeta flex h-full flex-col gap-2 p-6 transition-transform duration-300 hover:-translate-y-1">
+                    <h3 className="titulo-display text-2xl text-balance">{estilo}</h3>
 
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="titulo-display text-2xl">{titulo}</h3>
-                        {artista.artistaDestacado && (
-                          <span className="insignia insignia-cyan">Cierre</span>
-                        )}
-                      </div>
+                    {/* El nombre solo aparece cuando hay uno de verdad. Repetir
+                        "artista por confirmar" cuatro veces no informa nada. */}
+                    {!porConfirmar && (
+                      <p className="dato text-xs tracking-[0.16em] text-violeta uppercase">
+                        {artista.artistaNombre}
+                      </p>
+                    )}
 
-                      {bajada && (
-                        <p className="dato mt-1.5 text-xs tracking-[0.16em] text-violeta uppercase">
-                          {bajada}
-                        </p>
-                      )}
-
-                      {artista.artistaDescripcion && (
-                        <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-dim">
-                          {artista.artistaDescripcion}
-                        </p>
-                      )}
-                    </div>
+                    {artista.artistaDescripcion && (
+                      <p className="text-sm leading-relaxed text-dim">
+                        {artista.artistaDescripcion}
+                      </p>
+                    )}
                   </article>
                 </ItemEscalonado>
               );
             })}
           </Escalonado>
+        </section>
+      )}
+
+      {/* ----------------------------------------------------------- GALERIA */}
+      {/* Solo si hay fotos cargadas: una galeria vacia se lee como que nunca
+          paso nada antes, que es lo contrario de lo que esta seccion busca. */}
+      {evento.fotos.length > 0 && (
+        <section id="fotos" className="contenedor scroll-mt-24 py-16">
+          <EncabezadoSeccion
+            etiqueta="Instagram"
+            titulo="Cómo se ve por dentro"
+            descripcion="Fotos de las anteriores. Lo que viene es de la misma familia."
+          />
+
+          <Escalonado className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {evento.fotos.map((foto, i) => (
+              <ItemEscalonado key={foto.fotoId}>
+                <figure className="group relative aspect-square overflow-hidden rounded-[14px] border border-line bg-white/[0.03]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={urlDeFoto(foto.fotoArchivo)}
+                    alt={foto.fotoAlt ?? `SOMOS — foto ${i + 1}`}
+                    /* Las primeras entran con la pagina; el resto cuando se
+                       llega a ellas. Una galeria completa al cargar castiga
+                       justo a quien llega con datos moviles. */
+                    loading={i < 4 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  />
+                </figure>
+              </ItemEscalonado>
+            ))}
+          </Escalonado>
+
+          {evento.eventoInstagram && (
+            <Aparecer className="mt-8 text-center">
+              <a
+                href={`https://instagram.com/${evento.eventoInstagram.replace(/^@/, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-borde"
+              >
+                <Instagram size={17} />
+                Ver más en @{evento.eventoInstagram.replace(/^@/, '')}
+              </a>
+            </Aparecer>
+          )}
         </section>
       )}
 

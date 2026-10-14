@@ -49,6 +49,10 @@ export const obtenerEventoPublico = cache(async () => {
         where: { auspiciadorActivo: true },
         orderBy: { auspiciadorOrden: 'asc' },
       },
+      fotos: {
+        where: { fotoActiva: true },
+        orderBy: { fotoOrden: 'asc' },
+      },
     },
   });
 
@@ -65,6 +69,7 @@ export const obtenerEventoAdmin = cache(async () => {
       artistas: { orderBy: { artistaOrden: 'asc' } },
       preguntas: { orderBy: { preguntaOrden: 'asc' } },
       auspiciadores: { orderBy: { auspiciadorOrden: 'asc' } },
+      fotos: { orderBy: { fotoOrden: 'asc' } },
     },
   });
 });

@@ -2,7 +2,7 @@ import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 
-import { LOGO_MAX_MB, MIMES_COMPROBANTE, MIMES_LOGO } from './constantes';
+import { FOTO_MAX_MB, LOGO_MAX_MB, MIMES_COMPROBANTE, MIMES_LOGO } from './constantes';
 
 export type ComprobanteGuardado = {
   archivo: string;
@@ -169,4 +169,74 @@ export async function borrarLogo(nombre: string): Promise<void> {
 /** Ruta publica desde la que el navegador pide un logo. */
 export function urlDeLogo(nombre: string): string {
   return `/api/logo/${nombre}`;
+}
+
+// ---------------------------------------------------------------------------
+// Fotos de la galeria
+//
+// Mismo volumen, carpeta propia. Comparten con los logos el criterio de ser
+// publicas, y el mismo formato de nombre aleatorio: el nombre que trae el
+// archivo del usuario nunca se reutiliza.
+// ---------------------------------------------------------------------------
+
+/** Carpeta absoluta donde viven las fotos de la galeria. */
+export function directorioFotos(): string {
+  return resolve(process.cwd(), process.env.FOTOS_DIR ?? './data/fotos');
+}
+
+/** Guarda una foto con un nombre aleatorio y devuelve ese nombre. */
+export async function guardarFoto(archivo: File): Promise<string> {
+  if (!MIMES_LOGO.includes(archivo.type as (typeof MIMES_LOGO)[number])) {
+    throw new Error('La foto debe ser PNG, JPG o WEBP.');
+  }
+
+  if (archivo.size <= 0) {
+    throw new Error('El archivo llego vacio. Intenta subirlo de nuevo.');
+  }
+
+  if (archivo.size > FOTO_MAX_MB * 1024 * 1024) {
+    throw new Error(
+      `La foto pesa ${(archivo.size / (1024 * 1024)).toFixed(1)} MB y el maximo es ${FOTO_MAX_MB} MB. ` +
+        'Bajale la resolucion antes de subirla.',
+    );
+  }
+
+  const carpeta = directorioFotos();
+  await mkdir(carpeta, { recursive: true });
+
+  const nombre = `${Date.now().toString(36)}-${randomBytes(8).toString('hex')}${EXTENSION_LOGO[archivo.type]}`;
+  await writeFile(join(carpeta, nombre), Buffer.from(await archivo.arrayBuffer()));
+
+  return nombre;
+}
+
+export async function leerFoto(
+  nombre: string,
+): Promise<{ contenido: Buffer; mime: string } | null> {
+  if (!nombreLogoSeguro(nombre)) return null;
+
+  try {
+    const contenido = await readFile(join(directorioFotos(), nombre));
+    const extension = extname(nombre).toLowerCase();
+    const mime =
+      Object.entries(EXTENSION_LOGO).find(([, ext]) => ext === extension)?.[0] ?? 'image/jpeg';
+    return { contenido, mime };
+  } catch {
+    return null;
+  }
+}
+
+/** Borra el archivo de una foto. No falla si ya no esta. */
+export async function borrarFoto(nombre: string): Promise<void> {
+  if (!nombreLogoSeguro(nombre)) return;
+  try {
+    await unlink(join(directorioFotos(), nombre));
+  } catch {
+    /* ya no estaba */
+  }
+}
+
+/** Ruta publica desde la que el navegador pide una foto. */
+export function urlDeFoto(nombre: string): string {
+  return `/api/foto/${nombre}`;
 }

@@ -24,13 +24,6 @@ const USUARIO_SISTEMA_ID = 1;
 const INICIO_EVENTO = new Date('2026-11-21T21:00:00-03:00');
 const TERMINO_EVENTO = new Date('2026-11-22T05:00:00-03:00');
 
-/** Una hora del dia del evento, en hora de Chile. Acepta >=24 para la madrugada. */
-function horaEvento(hora: number): Date {
-  const dia = hora >= 24 ? 22 : 21;
-  const hh = String(hora % 24).padStart(2, '0');
-  return new Date(`2026-11-${dia}T${hh}:00:00-03:00`);
-}
-
 async function main() {
   console.log('› Sembrando base de datos SOMOS…');
 
@@ -244,27 +237,20 @@ async function main() {
   if (yaHayArtistas === 0) {
     // Bloques por estilo, no artistas: los nombres se confirman despues y
     // mientras tanto lo concreto es como se mueve la noche.
-    const bloques = [
-      { genero: 'Deep house', desc: 'Apertura. La pista se llena de a poco.', desde: 21, hasta: 23, cierre: false },
-      { genero: 'House', desc: null, desde: 23, hasta: 25, cierre: false },
-      { genero: 'Tech house', desc: 'El punto mas alto de la noche.', desde: 25, hasta: 27, cierre: false },
-      { genero: 'Reggaetón', desc: 'Cierre.', desde: 27, hasta: 29, cierre: true },
-    ];
+    // Sin horarios ni orden: estos estilos cruzan la noche entera. Guardar una
+    // hora aqui seria prometer una parrilla que no existe.
+    const bloques = ['Deep house', 'House', 'Tech house', 'Reggaetón'];
 
     await prisma.artista.createMany({
-      data: bloques.map((b, i) => ({
+      data: bloques.map((genero, i) => ({
         artistaEventoId: evento.eventoId,
         artistaNombre: 'Por confirmar',
-        artistaGenero: b.genero,
-        artistaDescripcion: b.desc,
-        artistaHoraInicio: horaEvento(b.desde),
-        artistaHoraTermino: horaEvento(b.hasta),
+        artistaGenero: genero,
         artistaOrden: i + 1,
-        artistaDestacado: b.cierre,
         createdBy: USUARIO_SISTEMA_ID,
       })),
     });
-    console.log(`  · line-up: ${bloques.map((b) => b.genero).join(' → ')}`);
+    console.log(`  · estilos: ${bloques.join(', ')}`);
   }
 
   // -------------------------------------------------------------------------

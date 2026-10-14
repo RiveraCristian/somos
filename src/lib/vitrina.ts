@@ -193,9 +193,10 @@ export function eventoDeVitrina() {
       },
     ],
 
-    // La vitrina no muestra auspicios: los logos son de terceros y no tienen
-    // por que aparecer en una demo publicada en GitHub Pages.
+    // La vitrina no muestra auspicios ni fotos: son material de terceros y de
+    // la fiesta real, y no tienen por que viajar en una demo.
     auspiciadores: [],
+    fotos: [],
   };
 }
 

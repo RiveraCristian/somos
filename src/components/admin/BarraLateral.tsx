@@ -7,6 +7,7 @@ import {
   CalendarCog,
   ChevronLeft,
   Handshake,
+  Images,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -25,6 +26,7 @@ const NAVEGACION = [
   { href: '/admin/invitados', texto: 'Invitados', icono: ListChecks, exacto: false },
   { href: '/admin/evento', texto: 'Evento', icono: CalendarCog, exacto: false },
   { href: '/admin/auspiciadores', texto: 'Auspiciadores', icono: Handshake, exacto: false },
+  { href: '/admin/fotos', texto: 'Galería', icono: Images, exacto: false },
   { href: '/puerta', texto: 'Puerta', icono: ScanLine, exacto: false },
 ];
 
