@@ -23,6 +23,7 @@ import { Escalonado, ItemEscalonado } from '@/components/movimiento/Escalonado';
 import { CuentaRegresiva } from '@/components/publico/CuentaRegresiva';
 import { Encabezado } from '@/components/publico/Encabezado';
 import { OndaAnimada } from '@/components/publico/OndaAnimada';
+import { EmbedsInstagram } from '@/components/publico/EmbedsInstagram';
 import { PiePagina } from '@/components/publico/PiePagina';
 import { Logo } from '@/components/marca/Logo';
 import { paletaDeTipo } from '@/lib/constantes';
@@ -30,7 +31,8 @@ import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
 import { etapaVigente, listarEtapas } from '@/lib/etapas';
 import { pasarelaActiva, type Pasarela } from '@/lib/pasarela';
 import { fechaLarga, hora, numero, pesos } from '@/lib/formato';
-import { urlDeFoto, urlDeLogo } from '@/lib/archivos';
+import { urlDeLogo } from '@/lib/archivos';
+import { permalinkDe } from '@/lib/instagram';
 import { UBICACION_SECRETA } from '@/lib/ubicacion';
 
 // El stock de entradas cambia en vivo: nunca se cachea la pagina.
@@ -402,36 +404,24 @@ export default async function PaginaInicio() {
         </section>
       )}
 
-      {/* ----------------------------------------------------------- GALERIA */}
-      {/* Solo si hay fotos cargadas: una galeria vacia se lee como que nunca
-          paso nada antes, que es lo contrario de lo que esta seccion busca. */}
-      {evento.fotos.length > 0 && (
-        <section id="fotos" className="contenedor scroll-mt-24 py-16">
+      {/* --------------------------------------------------------- INSTAGRAM */}
+      {/* Solo si hay posts cargados: una seccion vacia se lee como que nunca
+          paso nada antes, que es lo contrario de lo que esta buscando. */}
+      {evento.publicaciones.length > 0 && (
+        <section id="instagram" className="contenedor scroll-mt-24 py-16">
           <EncabezadoSeccion
             etiqueta="Instagram"
             titulo="Cómo se ve por dentro"
-            descripcion="Fotos de las anteriores. Lo que viene es de la misma familia."
+            descripcion="De las anteriores. Lo que viene es de la misma familia."
           />
 
-          <Escalonado className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {evento.fotos.map((foto, i) => (
-              <ItemEscalonado key={foto.fotoId}>
-                <figure className="group relative aspect-square overflow-hidden rounded-[14px] border border-line bg-white/[0.03]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={urlDeFoto(foto.fotoArchivo)}
-                    alt={foto.fotoAlt ?? `SOMOS — foto ${i + 1}`}
-                    /* Las primeras entran con la pagina; el resto cuando se
-                       llega a ellas. Una galeria completa al cargar castiga
-                       justo a quien llega con datos moviles. */
-                    loading={i < 4 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                  />
-                </figure>
-              </ItemEscalonado>
-            ))}
-          </Escalonado>
+          <Aparecer>
+            <EmbedsInstagram
+              permalinks={evento.publicaciones.map((pub) =>
+                permalinkDe({ codigo: pub.publicacionCodigo, tipo: pub.publicacionTipo }),
+              )}
+            />
+          </Aparecer>
 
           {evento.eventoInstagram && (
             <Aparecer className="mt-8 text-center">

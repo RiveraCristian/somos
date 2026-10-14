@@ -1,44 +1,45 @@
 'use client';
 
 import { useActionState } from 'react';
+import { AlertCircle, ArrowDown, ArrowUp, Check, Loader2, Plus, Power, Trash2 } from 'lucide-react';
+
 import {
-  AlertCircle,
-  ArrowDown,
-  ArrowUp,
-  Check,
-  Loader2,
-  Power,
-  Trash2,
-  Upload,
-} from 'lucide-react';
+  agregarPublicaciones,
+  alternarPublicacion,
+  moverPublicacion,
+  quitarPublicacion,
+  type EstadoPublicacion,
+} from './acciones';
 
-import { alternarFoto, moverFoto, quitarFoto, subirFotos, type EstadoFoto } from './acciones';
-
-/** Carga de fotos, varias a la vez. */
-export function SubirFotos({ eventoId }: { eventoId: number }) {
-  const [estado, accion, pendiente] = useActionState<EstadoFoto, FormData>(subirFotos, {});
+/** Pegado en bloque de links de Instagram. */
+export function AgregarPosts({ eventoId }: { eventoId: number }) {
+  const [estado, accion, pendiente] = useActionState<EstadoPublicacion, FormData>(
+    agregarPublicaciones,
+    {},
+  );
 
   return (
     <form action={accion} className="flex flex-col gap-4">
       <input type="hidden" name="eventoId" value={eventoId} />
 
       <div className="campo">
-        <label className="campo-label" htmlFor="fotos">
-          Fotos
+        <label className="campo-label" htmlFor="links">
+          Links de los posts
         </label>
-        <input
-          id="fotos"
-          name="fotos"
-          type="file"
-          multiple
+        <textarea
+          id="links"
+          name="links"
+          rows={6}
           required
-          accept="image/png,image/jpeg,image/webp"
-          className="campo-input file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:text-ink"
+          className="campo-textarea font-mono text-sm"
+          placeholder={
+            'https://www.instagram.com/p/CxAbCdEfGhI/\nhttps://www.instagram.com/reel/CyZzYyXxWwV/'
+          }
         />
         <span className="campo-ayuda">
-          PNG, JPG o WEBP, hasta 6 MB cada una y 20 por tanda. Puedes elegir varias de una vez.
-          Si vienen directo de la cámara, bájales la resolución: la galería la carga cada
-          persona que entra, muchas con datos móviles.
+          Uno por línea. En Instagram: abre el post, menú de los tres puntos, &ldquo;Copiar
+          enlace&rdquo;. Da lo mismo si trae el <code className="dato">?igsh=…</code> del final.
+          Los posts tienen que ser públicos.
         </span>
       </div>
 
@@ -47,12 +48,12 @@ export function SubirFotos({ eventoId }: { eventoId: number }) {
           {pendiente ? (
             <>
               <Loader2 size={18} className="girando" />
-              Subiendo…
+              Agregando…
             </>
           ) : (
             <>
-              <Upload size={18} />
-              Subir fotos
+              <Plus size={18} />
+              Agregar posts
             </>
           )}
         </button>
@@ -63,21 +64,24 @@ export function SubirFotos({ eventoId }: { eventoId: number }) {
   );
 }
 
-/** Botones de cada foto: mover, mostrar/ocultar y borrar. */
-export function AccionesFoto({
-  fotoId,
+/** Botones de cada post: mover, mostrar/ocultar y quitar. */
+export function AccionesPost({
+  publicacionId,
   activa,
   primera,
   ultima,
 }: {
-  fotoId: number;
+  publicacionId: number;
   activa: boolean;
   primera: boolean;
   ultima: boolean;
 }) {
-  const [, mover, moviendo] = useActionState<EstadoFoto, FormData>(moverFoto, {});
-  const [, alternar, alternando] = useActionState<EstadoFoto, FormData>(alternarFoto, {});
-  const [, quitar, quitando] = useActionState<EstadoFoto, FormData>(quitarFoto, {});
+  const [, mover, moviendo] = useActionState<EstadoPublicacion, FormData>(moverPublicacion, {});
+  const [, alternar, alternando] = useActionState<EstadoPublicacion, FormData>(
+    alternarPublicacion,
+    {},
+  );
+  const [, quitar, quitando] = useActionState<EstadoPublicacion, FormData>(quitarPublicacion, {});
 
   const boton =
     'flex size-8 items-center justify-center rounded-[8px] border border-line text-dim transition-colors disabled:opacity-35';
@@ -85,7 +89,7 @@ export function AccionesFoto({
   return (
     <div className="flex items-center gap-1.5">
       <form action={mover}>
-        <input type="hidden" name="fotoId" value={fotoId} />
+        <input type="hidden" name="publicacionId" value={publicacionId} />
         <input type="hidden" name="direccion" value="subir" />
         <button type="submit" disabled={moviendo || primera} title="Mover antes" className={boton}>
           <ArrowUp size={14} />
@@ -93,7 +97,7 @@ export function AccionesFoto({
       </form>
 
       <form action={mover}>
-        <input type="hidden" name="fotoId" value={fotoId} />
+        <input type="hidden" name="publicacionId" value={publicacionId} />
         <input type="hidden" name="direccion" value="bajar" />
         <button type="submit" disabled={moviendo || ultima} title="Mover después" className={boton}>
           <ArrowDown size={14} />
@@ -101,7 +105,7 @@ export function AccionesFoto({
       </form>
 
       <form action={alternar}>
-        <input type="hidden" name="fotoId" value={fotoId} />
+        <input type="hidden" name="publicacionId" value={publicacionId} />
         <button
           type="submit"
           disabled={alternando}
@@ -113,11 +117,11 @@ export function AccionesFoto({
       </form>
 
       <form action={quitar}>
-        <input type="hidden" name="fotoId" value={fotoId} />
+        <input type="hidden" name="publicacionId" value={publicacionId} />
         <button
           type="submit"
           disabled={quitando}
-          title="Borrar (elimina el archivo)"
+          title="Quitar de la portada"
           className={`${boton} hover:border-[rgba(255,77,109,0.5)] hover:text-error`}
         >
           {quitando ? <Loader2 size={14} className="girando" /> : <Trash2 size={14} />}
@@ -127,7 +131,7 @@ export function AccionesFoto({
   );
 }
 
-function Aviso({ estado }: { estado: EstadoFoto }) {
+function Aviso({ estado }: { estado: EstadoPublicacion }) {
   if (estado.error) {
     return (
       <p className="flex items-start gap-2.5 rounded-[10px] border border-[rgba(255,77,109,0.3)] bg-[rgba(255,77,109,0.08)] px-4 py-3 text-sm text-error">

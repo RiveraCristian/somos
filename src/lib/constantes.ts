@@ -104,13 +104,5 @@ export const MIMES_LOGO = ['image/png', 'image/jpeg', 'image/webp'] as const;
 /** Un logo no necesita mas que esto; el tope corta subidas por equivocacion. */
 export const LOGO_MAX_MB = 2;
 
-/**
- * Tope de una foto de la galeria.
- *
- * Mas alto que el de un logo porque son fotos de camara, pero acotado igual: el
- * servidor tiene 8.7 GB de disco y la galeria la ve todo el que entra, asi que
- * una foto de 10 MB la paga cada visitante en datos moviles.
- */
-export const FOTO_MAX_MB = 6;
 
 export const ZONA_HORARIA = 'America/Santiago';

@@ -193,10 +193,10 @@ export function eventoDeVitrina() {
       },
     ],
 
-    // La vitrina no muestra auspicios ni fotos: son material de terceros y de
-    // la fiesta real, y no tienen por que viajar en una demo.
+    // La vitrina no muestra auspicios ni Instagram: son material de terceros y
+    // de la fiesta real, y no tienen por que viajar en una demo.
     auspiciadores: [],
-    fotos: [],
+    publicaciones: [],
   };
 }
 

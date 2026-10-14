@@ -19,7 +19,6 @@ services:
       NODE_ENV: production
       UPLOADS_DIR: /app/data/comprobantes
       LOGOS_DIR: /app/data/logos
-      FOTOS_DIR: /app/data/fotos
     volumes:
       # Comprobantes de transferencia y logos de auspiciadores: lo que suben
       # las personas y no viene en la imagen. Sobrevive a los redeploys.
