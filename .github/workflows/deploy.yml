@@ -11,6 +11,13 @@ name: Desplegar en el droplet
 #
 # Los secretos de la aplicacion (base de datos, JWT, Fintoc, Resend) NO estan
 # aca: viven solo en /opt/somos/.env dentro del servidor.
+#
+# Excepcion: los de Mercado Pago. Si estan cargados, cada despliegue los
+# escribe en /opt/somos/.env (ver deploy/remote-deploy.sh). Si no estan, el
+# servidor conserva lo que tenga: un secreto que falta no borra nada.
+#   MERCADOPAGO_ACCESS_TOKEN    (secreto)   token de PRODUCCION, APP_USR-...
+#   MERCADOPAGO_WEBHOOK_SECRET  (secreto)   clave secreta del webhook productivo
+#   PASARELA                    (variable o secreto)  mercadopago | flow | fintoc
 
 on:
   push:
@@ -110,9 +117,14 @@ jobs:
           IMAGEN: ${{ steps.imagen.outputs.tag }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MP_ACCESS_TOKEN: ${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
+          MP_WEBHOOK_SECRET: ${{ secrets.MERCADOPAGO_WEBHOOK_SECRET }}
+          PASARELA_ELEGIDA: ${{ vars.PASARELA || secrets.PASARELA }}
         run: |
           {
             printf 'export SOMOS_IMAGE=%q GHCR_USER=%q GHCR_TOKEN=%q\n' \
               "$IMAGEN" "$GHCR_USER" "$GHCR_TOKEN"
+            printf 'export MP_ACCESS_TOKEN=%q MP_WEBHOOK_SECRET=%q PASARELA_ELEGIDA=%q\n' \
+              "$MP_ACCESS_TOKEN" "$MP_WEBHOOK_SECRET" "$PASARELA_ELEGIDA"
             cat deploy/remote-deploy.sh
           } | ssh -i ~/.ssh/id_ed25519 "deploy@${{ secrets.DROPLET_HOST }}" 'bash -s'

@@ -20,6 +20,36 @@ cd /opt/somos
 : "${GHCR_USER:?falta GHCR_USER}"
 : "${GHCR_TOKEN:?falta GHCR_TOKEN}"
 
+# ---------------------------------------------------------------------------
+# Configuracion que viene de GitHub
+#
+# Los secretos de Mercado Pago (y la pasarela elegida) pueden vivir en GitHub.
+# Si llegaron, se escriben en el .env; si llegaron vacios, no se toca nada: un
+# secreto que falta en GitHub no puede borrar el que ya funciona aca.
+#
+# No se usa sed: un token con / o & romperia el reemplazo. Se reescribe el
+# archivo sin la linea y se agrega al final, con los permisos de antes.
+# ---------------------------------------------------------------------------
+fijar_en_env() {
+  local llave="$1" valor="$2" tmp
+  [ -n "$valor" ] || return 0
+  case "$valor" in
+    *$'\n'* | *'"'*) echo "FALLO: $llave trae un salto de linea o comillas." >&2; exit 1 ;;
+  esac
+  tmp="$(mktemp /opt/somos/.env.XXXXXX)"
+  grep -v "^${llave}=" .env > "$tmp" || true
+  printf '%s="%s"\n' "$llave" "$valor" >> "$tmp"
+  chmod --reference=.env "$tmp"
+  mv "$tmp" .env
+  echo "    $llave actualizado desde GitHub"
+}
+
+echo "==> Configuracion"
+fijar_en_env MERCADOPAGO_ACCESS_TOKEN "${MP_ACCESS_TOKEN:-}"
+fijar_en_env MERCADOPAGO_WEBHOOK_SECRET "${MP_WEBHOOK_SECRET:-}"
+fijar_en_env PASARELA "${PASARELA_ELEGIDA:-}"
+unset MP_ACCESS_TOKEN MP_WEBHOOK_SECRET
+
 limpiar() { docker logout ghcr.io >/dev/null 2>&1 || true; }
 trap limpiar EXIT
 

@@ -225,8 +225,9 @@ systemctl reload nginx
 log "Carpeta $DIR_APP"
 install -d -m 755 -o deploy -g deploy "$DIR_APP"
 
-# El .env se crea una sola vez. En los redeploys NO se toca: es la fuente de
-# verdad de los secretos y vive solo aqui, nunca en el repositorio ni en CI.
+# El .env se crea una sola vez y es la fuente de verdad de los secretos; nunca
+# va en el repositorio. Los redeploys solo le escriben las llaves de Mercado
+# Pago y PASARELA, y solo si estan cargadas en GitHub (ver remote-deploy.sh).
 if [ ! -f "$DIR_APP/.env" ]; then
   JWT="$(openssl rand -base64 48 | tr -d '\n')"
   PASS_ADMIN="$(openssl rand -base64 18 | tr -d '/+=\n' | head -c 16)"
