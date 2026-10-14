@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 import { generarCodigoEntrada, generarToken } from './codigos';
 import { enviarCorreo, plantillaEntrada } from './correo';
 import { fechaLarga, hora } from './formato';
@@ -13,7 +15,23 @@ export type ResultadoConfirmacion = {
   reciencreada: boolean;
   totalPagado: number;
   correoEnviado: boolean;
+  /**
+   * true si la entrada ya estaba cubierta antes de este pago: la plata entro
+   * dos veces y hay que devolver una. Quien llama decide como registrarlo.
+   */
+  excedente: boolean;
 };
+
+/**
+ * Toma la fila del asistente hasta que termine la transaccion.
+ *
+ * Todo lo que cambia la plata de una persona —confirmar, revertir— pasa por
+ * aca primero. Serializa por asistente, no globalmente: dos personas distintas
+ * pagando a la vez no se esperan entre si.
+ */
+async function bloquearAsistente(tx: Prisma.TransactionClient, asistenteId: number) {
+  await tx.$queryRaw`SELECT 1 FROM "asistentes" WHERE "asistente_id" = ${asistenteId} FOR UPDATE`;
+}
 
 /**
  * Confirma un pago y, si corresponde, emite la entrada y la manda por correo.
@@ -44,9 +62,38 @@ export async function confirmarPagoYEmitir(
   const asistente = pago.asistente;
 
   const resultado = await prisma.$transaction(async (tx) => {
+    // El webhook y la conciliacion pueden llegar a la vez por el mismo cobro, o
+    // por dos cobros de la misma persona. Se toma la fila del asistente y todo
+    // lo demas se relee bajo ese candado: el segundo en llegar ve lo que dejo
+    // el primero, en vez de emitir otra entrada o sumar dos veces.
+    await bloquearAsistente(tx, asistente.asistenteId);
+
+    const actual = await tx.pago.findUniqueOrThrow({
+      where: { pagoId },
+      select: { pagoEstado: true },
+    });
+    const entradaActual = await tx.entrada.findUnique({
+      where: { entradaAsistenteId: asistente.asistenteId },
+    });
+
+    let excedente = false;
+
     // Solo se marca si seguia pendiente: si otro camino ya lo confirmo, esto no
     // vuelve a tocarlo ni pisa quien lo reviso.
-    if (pago.pagoEstado !== 'confirmado') {
+    if (actual.pagoEstado !== 'confirmado') {
+      // ¿Ya estaba cubierta la entrada antes de este pago? Entonces este cobro
+      // sobra: la plata entro, pero hay que devolverla.
+      const previo = await tx.pago.aggregate({
+        _sum: { pagoMonto: true },
+        where: {
+          pagoAsistenteId: asistente.asistenteId,
+          pagoEstado: 'confirmado',
+          pagoId: { not: pagoId },
+          isDeleted: false,
+        },
+      });
+      excedente = (previo._sum.pagoMonto ?? 0) >= asistente.asistentePrecio;
+
       await tx.pago.update({
         where: { pagoId },
         data: {
@@ -81,8 +128,17 @@ export async function confirmarPagoYEmitir(
       },
     });
 
-    if (asistente.entrada) {
-      return { total, entrada: asistente.entrada, reciencreada: false };
+    if (entradaActual) {
+      // Una entrada anulada por un reembolso vuelve a valer si la persona
+      // paga de nuevo. Es la misma entrada y el mismo QR: sigue siendo suya.
+      if (entradaActual.entradaEstado === 'anulada' && total >= asistente.asistentePrecio) {
+        const revivida = await tx.entrada.update({
+          where: { entradaId: entradaActual.entradaId },
+          data: { entradaEstado: 'valida', modifiedBy: usuarioId },
+        });
+        return { total, entrada: revivida, reciencreada: false, excedente };
+      }
+      return { total, entrada: entradaActual, reciencreada: false, excedente };
     }
 
     // Emision de la entrada. El codigo legible puede chocar: se reintenta.
@@ -97,7 +153,7 @@ export async function confirmarPagoYEmitir(
             createdBy: usuarioId,
           },
         });
-        return { total, entrada, reciencreada: true };
+        return { total, entrada, reciencreada: true, excedente };
       } catch (e) {
         if ((e as { code?: string }).code !== 'P2002') throw e;
       }
@@ -159,5 +215,112 @@ export async function confirmarPagoYEmitir(
     reciencreada: resultado.reciencreada,
     totalPagado: resultado.total,
     correoEnviado,
+    excedente: resultado.excedente,
   };
+}
+
+export type ResultadoReversion = {
+  /** false si el pago ya estaba en ese estado: no se hizo nada. */
+  cambio: boolean;
+  totalPagado: number;
+  /** La entrada quedo sin pago que la respalde y se anulo. */
+  entradaAnulada: boolean;
+  /** La entrada quedo sin pago, pero ya se uso en la puerta: no hay que anular. */
+  entradaUsada: boolean;
+};
+
+/**
+ * Saca un pago confirmado del total: lo devolvieron o hubo contracargo.
+ *
+ * Si con eso la entrada queda sin pagar, se anula: un QR sin plata detras no
+ * deberia abrir la puerta. Si el reembolso era de un cobro que sobraba (el
+ * caso del pago doble), los otros pagos siguen cubriendo y la entrada no se
+ * toca.
+ */
+export async function revertirPago(
+  pagoId: number,
+  estado: 'reembolsado',
+  motivo: string,
+  usuarioId: number,
+): Promise<ResultadoReversion> {
+  const pago = await prisma.pago.findFirst({
+    where: { pagoId, isDeleted: false },
+    select: { pagoAsistenteId: true },
+  });
+
+  if (!pago) throw new Error(`No existe el pago ${pagoId}.`);
+
+  return prisma.$transaction(async (tx) => {
+    await bloquearAsistente(tx, pago.pagoAsistenteId);
+
+    const actual = await tx.pago.findUniqueOrThrow({
+      where: { pagoId },
+      select: { pagoEstado: true },
+    });
+
+    if (actual.pagoEstado === estado) {
+      const asistente = await tx.asistente.findUniqueOrThrow({
+        where: { asistenteId: pago.pagoAsistenteId },
+        select: { asistenteMontoPagado: true },
+      });
+      return {
+        cambio: false,
+        totalPagado: asistente.asistenteMontoPagado,
+        entradaAnulada: false,
+        entradaUsada: false,
+      };
+    }
+
+    await tx.pago.update({
+      where: { pagoId },
+      data: {
+        pagoEstado: estado,
+        pagoMotivoRechazo: motivo.slice(0, 300),
+        pagoFechaRevisado: new Date(),
+        modifiedBy: usuarioId,
+      },
+    });
+
+    const suma = await tx.pago.aggregate({
+      _sum: { pagoMonto: true },
+      where: { pagoAsistenteId: pago.pagoAsistenteId, pagoEstado: 'confirmado', isDeleted: false },
+    });
+    const total = suma._sum.pagoMonto ?? 0;
+
+    const asistente = await tx.asistente.findUniqueOrThrow({
+      where: { asistenteId: pago.pagoAsistenteId },
+      include: { entrada: true },
+    });
+
+    const cubierta = total >= asistente.asistentePrecio;
+
+    await tx.asistente.update({
+      where: { asistenteId: asistente.asistenteId },
+      data: {
+        asistenteMontoPagado: total,
+        // Una reserva anulada sigue anulada; las demas vuelven a "falta pagar".
+        ...(!cubierta && asistente.asistenteEstado === 'confirmado'
+          ? { asistenteEstado: 'pendiente' }
+          : {}),
+        modifiedBy: usuarioId,
+      },
+    });
+
+    let entradaAnulada = false;
+    let entradaUsada = false;
+
+    if (!cubierta && asistente.entrada) {
+      if (asistente.entrada.entradaEstado === 'valida') {
+        await tx.entrada.update({
+          where: { entradaId: asistente.entrada.entradaId },
+          data: { entradaEstado: 'anulada', modifiedBy: usuarioId },
+        });
+        entradaAnulada = true;
+      } else if (asistente.entrada.entradaEstado === 'quemada') {
+        entradaUsada = true;
+      }
+    }
+
+    return { cambio: true, totalPagado: total, entradaAnulada, entradaUsada };
+  });
 }

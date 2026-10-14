@@ -22,12 +22,13 @@ import { ETIQUETAS_METODO, type MetodoPago, paletaDeTipo } from '@/lib/constante
 import { obtenerAsistentePorToken } from '@/lib/datos';
 import { clavePublicaFintoc } from '@/lib/fintoc';
 import { fechaHora, pesos } from '@/lib/formato';
-import { clavePublicaMercadoPago } from '@/lib/mercadopago';
+import { mensajeDeRechazoMp } from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
 
 import { BotonPagarEnLinea } from './BotonPagarEnLinea';
 import { BotonPagarFlow } from './BotonPagarFlow';
-import { PagoMercadoPago } from './PagoMercadoPago';
+import { BotonPagarMercadoPago } from './BotonPagarMercadoPago';
+import { EsperandoConfirmacion } from './EsperandoConfirmacion';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +58,15 @@ export default async function PaginaMiEntrada({
     !asistente.entrada &&
     asistente.pagos.some((p) => p.pagoProveedor !== 'manual' && p.pagoEstado === 'pendiente');
 
+  // Recien vuelto de Mercado Pago se consulta sin esperar: es justo el momento
+  // en que la persona quiere ver su entrada.
+  const volvioDeMp = parametros.pago === 'mp';
+
   if (hayCobroColgado) {
-    const conciliado = await conciliarPagosPasarela(asistente.asistenteId, 20_000);
+    const conciliado = await conciliarPagosPasarela(
+      asistente.asistenteId,
+      volvioDeMp ? 0 : 20_000,
+    );
     if (conciliado.reciencerrado) {
       asistente = (await obtenerAsistentePorToken(token)) ?? asistente;
     }
@@ -76,6 +84,17 @@ export default async function PaginaMiEntrada({
   const pasarela = pasarelaActiva();
   const enLinea = pasarela !== null;
   const activa = asistente.asistenteEstado !== 'anulado' && evento.eventoEstado !== 'finalizado';
+
+  // Lo que dice el backend del ultimo intento con Mercado Pago. El aviso de
+  // regreso sale de aca y no de los parametros que Mercado Pago pone en la URL:
+  // esos los puede escribir cualquiera.
+  const ultimoMp = pagos.find((p) => p.pagoProveedor === 'mercadopago') ?? null;
+  const mpEnCurso =
+    ultimoMp?.pagoEstado === 'pendiente' &&
+    ['pending', 'in_process', 'authorized', 'in_mediation'].includes(ultimoMp.pagoExternoEstado ?? '');
+  const mpRechazado =
+    ultimoMp?.pagoEstado === 'rechazado' ||
+    (ultimoMp?.pagoEstado === 'pendiente' && ultimoMp.pagoExternoEstado === 'rejected');
 
   return (
     <>
@@ -95,6 +114,38 @@ export default async function PaginaMiEntrada({
                 </p>
               </div>
             </div>
+          )}
+
+          {volvioDeMp && saldo > 0 && (
+            <>
+              {!mpRechazado && <EsperandoConfirmacion token={asistente.asistenteToken} />}
+              {mpRechazado ? (
+                <div className="flex items-start gap-3 rounded-[14px] border border-[rgba(255,77,109,0.3)] bg-[rgba(255,77,109,0.06)] px-5 py-4">
+                  <XCircle size={18} className="mt-0.5 shrink-0 text-error" />
+                  <div>
+                    <p className="font-medium">Mercado Pago rechazó el pago</p>
+                    <p className="mt-1 text-sm leading-relaxed text-dim">
+                      {mensajeDeRechazoMp(ultimoMp?.pagoExternoDetalle)} Tu entrada sigue
+                      reservada: puedes intentarlo de nuevo.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3 rounded-[14px] border border-[rgba(0,240,255,0.3)] bg-[rgba(0,240,255,0.06)] px-5 py-4">
+                  <Loader2 size={18} className="girando mt-0.5 shrink-0 text-cyan" />
+                  <div>
+                    <p className="font-medium">
+                      {mpEnCurso ? 'Tu pago está en proceso' : 'Estamos confirmando tu pago'}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-dim">
+                      {mpEnCurso
+                        ? 'Mercado Pago todavía lo está revisando. Apenas se apruebe te llega la entrada por correo y aparece acá.'
+                        : 'Le estamos preguntando a Mercado Pago. Si pagaste, tu entrada aparece acá en unos segundos. Si no completaste el pago, puedes intentarlo de nuevo.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {parametros.pago === 'cancelado' && (
@@ -228,7 +279,7 @@ export default async function PaginaMiEntrada({
                   ? 'Transferencia directa desde tu banco, sin salir de esta página. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'
                   : pasarela === 'flow'
                     ? 'Paga con tarjeta, débito o transferencia a través de Flow. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'
-                    : 'Paga con tu tarjeta acá mismo. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'}
+                    : 'Paga con tarjeta de crédito, débito u otros medios en Mercado Pago. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'}
               </p>
 
               {pasarela === 'fintoc' ? (
@@ -240,20 +291,22 @@ export default async function PaginaMiEntrada({
               ) : pasarela === 'flow' ? (
                 <BotonPagarFlow token={asistente.asistenteToken} monto={saldo} />
               ) : (
-                <PagoMercadoPago
-                  token={asistente.asistenteToken}
-                  monto={saldo}
-                  clavePublica={clavePublicaMercadoPago()}
-                  correo={asistente.asistenteCorreo}
-                />
+                <BotonPagarMercadoPago token={asistente.asistenteToken} monto={saldo} />
               )}
 
               <p className="mt-5 flex items-start gap-2.5 text-xs leading-relaxed text-faint">
                 <ShieldCheck size={14} className="mt-0.5 shrink-0 text-ok" />
-                {pasarela === 'flow'
-                  ? 'El pago ocurre en Flow. Nosotros nunca vemos los datos de tu tarjeta ni las claves de tu banco.'
+                {pasarela === 'flow' || pasarela === 'mercadopago'
+                  ? `El pago ocurre en ${pasarela === 'flow' ? 'Flow' : 'Mercado Pago'}. Nosotros nunca vemos los datos de tu tarjeta ni las claves de tu banco.`
                   : 'Te conectas con tu propio banco. Nosotros nunca vemos tus claves ni los datos de tu cuenta.'}
               </p>
+            </section>
+          )}
+
+          {/* ------------------------------------------- Ya pagada (Mercado Pago) */}
+          {activa && saldo <= 0 && estaPagada && pasarela === 'mercadopago' && (
+            <section className="tarjeta p-7 sm:p-9">
+              <BotonPagarMercadoPago token={asistente.asistenteToken} monto={0} pagado />
             </section>
           )}
 
@@ -296,7 +349,8 @@ export default async function PaginaMiEntrada({
                         {' · '}
                         {fechaHora(pago.pagoFechaDeclarado)}
                       </div>
-                      {pago.pagoEstado === 'rechazado' && pago.pagoMotivoRechazo && (
+                      {['rechazado', 'cancelado', 'reembolsado'].includes(pago.pagoEstado) &&
+                        pago.pagoMotivoRechazo && (
                         <p className="mt-1 text-sm text-error">{pago.pagoMotivoRechazo}</p>
                       )}
                     </div>
@@ -305,9 +359,17 @@ export default async function PaginaMiEntrada({
                       <span className="insignia insignia-ok">Confirmado</span>
                     ) : pago.pagoEstado === 'rechazado' ? (
                       <span className="insignia insignia-error">Rechazado</span>
+                    ) : pago.pagoEstado === 'cancelado' ? (
+                      <span className="insignia insignia-neutral">Cancelado</span>
+                    ) : pago.pagoEstado === 'reembolsado' ? (
+                      <span className="insignia insignia-neutral">Devuelto</span>
                     ) : (
                       <span className="insignia insignia-pendiente">
-                        {pago.pagoProveedor === 'fintoc' ? 'Esperando el banco' : 'En revisión'}
+                        {pago.pagoProveedor === 'fintoc'
+                          ? 'Esperando el banco'
+                          : pago.pagoProveedor === 'mercadopago' && !pago.pagoExternoEstado
+                            ? 'Sin completar'
+                            : 'En revisión'}
                       </span>
                     )}
                   </li>

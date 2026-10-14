@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 
 import { conciliarPagosPasarela } from '@/lib/conciliacion';
 import { USUARIO_SISTEMA_ID } from '@/lib/constantes';
@@ -12,7 +13,13 @@ import {
   nuevaOrdenComercio,
   urlDeCheckout,
 } from '@/lib/flow';
-import { cobrarConMercadoPago, pagoAprobado, pagoFallido } from '@/lib/mercadopago';
+import { ipDelCliente, permitir } from '@/lib/limitador';
+import {
+  VIGENCIA_PREFERENCIA_MS,
+  crearPreferenciaMp,
+  nuevaReferenciaMp,
+  urlDePreferenciaMp,
+} from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
 import { prisma } from '@/lib/prisma';
 
@@ -32,6 +39,8 @@ function urlBase(): string {
   return (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
 }
 
+const YA_PAGADA = 'Tu entrada ya está pagada.';
+
 /**
  * Datos del comprador y cuanto le falta pagar, o el motivo por el que no puede.
  * El campo `ok` es el discriminante: sin el, TypeScript no separa bien las dos
@@ -50,7 +59,7 @@ async function situacionDeCobro(token: string) {
   if (asistente.evento.eventoEstado === 'finalizado') return negar('Este evento ya terminó.');
 
   const saldo = asistente.asistentePrecio - asistente.asistenteMontoPagado;
-  if (saldo <= 0) return negar('Tu entrada ya está pagada.');
+  if (saldo <= 0) return negar(YA_PAGADA);
 
   return { ok: true as const, asistente, saldo };
 }
@@ -152,120 +161,172 @@ export async function iniciarPagoEnLinea(
 }
 
 // ---------------------------------------------------------------------------
-// Mercado Pago: el Brick arma el pago y el servidor lo cobra
+// Mercado Pago: Checkout Pro, se crea la preferencia y se va a mercadopago.cl
 // ---------------------------------------------------------------------------
 
-export type ResultadoBrick = {
-  estado: 'aprobado' | 'en_proceso' | 'rechazado' | 'error';
-  mensaje: string;
-  codigo?: string;
-};
+export type EstadoCobroMp = { error?: string; url?: string; pagado?: boolean };
+
+/** Intentos de abrir el checkout por entrada y por IP, cada diez minutos. */
+const LIMITE_POR_ENTRADA = 8;
+const LIMITE_POR_IP = 30;
+const VENTANA_LIMITE_MS = 10 * 60 * 1000;
+
+/** Una preferencia se reutiliza mientras le quede al menos esto de vida. */
+const MARGEN_REUSO_MS = 15 * 60 * 1000;
+
+/** Estados de Mercado Pago en que ya hay un cobro real andando. */
+const COBRO_EN_CURSO = new Set(['pending', 'in_process', 'authorized', 'in_mediation']);
 
 /**
- * Cobra lo que armó el Brick de Mercado Pago.
- *
- * El navegador solo manda el token de la tarjeta y el medio de pago; el monto se
- * toma del tipo de entrada en el servidor. Si viniera del cliente, cualquiera
- * podria pagar mil pesos por una entrada de doce mil.
+ * Evita que dos clics simultaneos abran dos preferencias para la misma
+ * persona. En memoria alcanza: la app corre en un solo proceso.
  */
-export async function cobrarConBrick(
-  token: string,
-  datosFormulario: Record<string, unknown>,
-): Promise<ResultadoBrick> {
+const abriendo = new Set<number>();
+
+/**
+ * Arranca un cobro con Checkout Pro.
+ *
+ * Lo unico que manda el navegador es el token del link privado. De ahi el
+ * servidor saca quien es, si sigue invitado, cuanto debe y si ya pago; el
+ * monto, la moneda y la referencia no pasan nunca por el cliente.
+ *
+ * El pago queda en `pendiente`. Quien lo confirma es el webhook o la
+ * conciliacion, nunca el regreso del comprador: volver de Mercado Pago con
+ * `status=approved` en la URL no prueba nada, esa URL la escribe cualquiera.
+ */
+export async function iniciarPagoMercadoPago(
+  _previo: EstadoCobroMp,
+  formulario: FormData,
+): Promise<EstadoCobroMp> {
   if (pasarelaActiva() !== 'mercadopago') {
-    return { estado: 'error', mensaje: 'El pago en línea no está disponible ahora mismo.' };
+    return { error: 'El pago en línea no está disponible ahora mismo.' };
+  }
+
+  const token = String(formulario.get('token') ?? '');
+
+  // El token es un secreto de 64 caracteres que solo llega por correo. Igual
+  // se limita: cada intento le cuesta una llamada a Mercado Pago.
+  const ip = ipDelCliente(await headers());
+  if (
+    !permitir(`mp:ip:${ip}`, LIMITE_POR_IP, VENTANA_LIMITE_MS) ||
+    !permitir(`mp:token:${token}`, LIMITE_POR_ENTRADA, VENTANA_LIMITE_MS)
+  ) {
+    return { error: 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.' };
   }
 
   const situacion = await situacionDeCobro(token);
-  if (!situacion.ok) return { estado: 'error', mensaje: situacion.error };
+  if (!situacion.ok) {
+    return situacion.error === YA_PAGADA ? { pagado: true } : { error: situacion.error };
+  }
 
   const { asistente, saldo } = situacion;
 
-  let cobro;
-  try {
-    cobro = await cobrarConMercadoPago({
-      datosFormulario,
-      monto: saldo,
-      descripcion: `Entrada ${asistente.tipoEntrada.tipoEntradaNombre} · ${asistente.evento.eventoNombre}`,
-      referenciaExterna: `asistente-${asistente.asistenteId}`,
-      correo: asistente.asistenteCorreo,
-    });
-  } catch (e) {
-    console.error('[mercadopago] fallo el cobro:', e);
+  // Sigue en la lista? Un numero que se saco de la lista despues de reservar
+  // ya no esta autorizado a pagar.
+  const invitado = asistente.asistenteTelefono
+    ? await prisma.invitado.findFirst({
+        where: {
+          invitadoEventoId: asistente.asistenteEventoId,
+          invitadoTelefono: asistente.asistenteTelefono,
+          invitadoActivo: true,
+          isDeleted: false,
+        },
+        select: { invitadoId: true },
+      })
+    : null;
+
+  if (!invitado) {
     return {
-      estado: 'error',
-      mensaje: 'No pudimos procesar el pago. Intenta de nuevo o transfiere a nuestra cuenta.',
+      error:
+        'Tu número ya no figura en la lista de invitados, así que no podemos cobrarte. ' +
+        'Escríbenos por Instagram y lo revisamos.',
     };
   }
 
-  const aprobado = pagoAprobado(cobro);
+  if (abriendo.has(asistente.asistenteId)) {
+    return { error: 'Ya estamos abriendo tu pago. Espera un segundo.' };
+  }
+  abriendo.add(asistente.asistenteId);
 
-  const pago = await prisma.pago.create({
-    data: {
-      pagoAsistenteId: asistente.asistenteId,
-      pagoMonto: saldo,
-      pagoMetodo: 'mercadopago',
-      pagoProveedor: 'mercadopago',
-      pagoEstado: aprobado ? 'pendiente' : pagoFallido(cobro) ? 'rechazado' : 'pendiente',
-      pagoExternoPago: String(cobro.id),
-      pagoMotivoRechazo: pagoFallido(cobro) ? (cobro.status_detail ?? 'Pago rechazado.') : null,
-      pagoFechaRevisado: pagoFallido(cobro) ? new Date() : null,
-      createdBy: USUARIO_SISTEMA_ID,
-    },
-  });
+  try {
+    // Antes de abrir otro intento, se le pregunta a Mercado Pago por los que
+    // quedaron abiertos: puede que ya haya pagado y no haya vuelto al sitio.
+    const conciliado = await conciliarPagosPasarela(asistente.asistenteId);
+    if (conciliado.pagado) {
+      revalidatePath(`/mi-entrada/${token}`);
+      return { pagado: true };
+    }
 
-  // La emision pasa por la conciliacion, que vuelve a preguntarle a Mercado Pago
-  // en vez de confiar en la respuesta que ya tenemos en mano. Es un viaje extra,
-  // pero deja un solo camino por el que se emiten entradas.
-  if (aprobado) {
-    const resultado = await conciliarPagosPasarela(asistente.asistenteId);
-    revalidatePath(`/mi-entrada/${token}`);
+    const abierto = await prisma.pago.findFirst({
+      where: {
+        pagoAsistenteId: asistente.asistenteId,
+        pagoProveedor: 'mercadopago',
+        pagoEstado: 'pendiente',
+        isDeleted: false,
+      },
+      orderBy: { pagoFechaDeclarado: 'desc' },
+    });
 
-    if (resultado.pagado) {
+    // Un cobro real en curso (efectivo por pagar, tarjeta en revision): abrir
+    // otro es la receta para cobrar dos veces.
+    if (abierto && COBRO_EN_CURSO.has(abierto.pagoExternoEstado ?? '')) {
       return {
-        estado: 'aprobado',
-        mensaje: 'Pago aprobado. Tu entrada ya está emitida.',
-        codigo: resultado.codigo,
+        error:
+          'Tienes un pago en proceso con Mercado Pago. Apenas se resuelva te llega la entrada ' +
+          'por correo; si se rechaza, podrás intentar de nuevo.',
       };
     }
+
+    // Si la preferencia anterior sigue viva, se reutiliza en vez de acumular un
+    // intento por cada clic.
+    if (
+      abierto?.pagoExternoSesion &&
+      abierto.pagoMonto === saldo &&
+      Date.now() - abierto.pagoFechaDeclarado.getTime() < VIGENCIA_PREFERENCIA_MS - MARGEN_REUSO_MS
+    ) {
+      const url = await urlDePreferenciaMp(abierto.pagoExternoSesion);
+      if (url) return { url };
+    }
+
+    const referencia = nuevaReferenciaMp(asistente.asistenteId);
+
+    const preferencia = await crearPreferenciaMp({
+      referencia,
+      monto: saldo,
+      titulo: `Entrada ${asistente.tipoEntrada.tipoEntradaNombre} · ${asistente.evento.eventoNombre}`,
+      correo: asistente.asistenteCorreo,
+      nombre: asistente.asistenteNombre,
+      urlRetorno: `${urlBase()}/mi-entrada/${token}?pago=mp`,
+    });
+
+    await prisma.pago.create({
+      data: {
+        pagoAsistenteId: asistente.asistenteId,
+        pagoMonto: saldo,
+        pagoMetodo: 'mercadopago',
+        pagoProveedor: 'mercadopago',
+        pagoEstado: 'pendiente',
+        // La preferencia identifica el intento; la referencia es la llave con
+        // que el webhook encuentra a quien pertenece cada cobro.
+        pagoExternoSesion: preferencia.id,
+        pagoReferencia: referencia,
+        createdBy: USUARIO_SISTEMA_ID,
+      },
+    });
+
+    revalidatePath(`/mi-entrada/${token}`);
+
+    return { url: preferencia.urlCheckout };
+  } catch (e) {
+    console.error('[mercadopago] no se pudo crear la preferencia:', e);
+    return { error: 'No pudimos abrir el pago. Intenta de nuevo en un momento.' };
+  } finally {
+    abriendo.delete(asistente.asistenteId);
   }
-
-  revalidatePath(`/mi-entrada/${token}`);
-
-  if (pagoFallido(cobro)) {
-    return {
-      estado: 'rechazado',
-      mensaje: mensajeDeRechazo(cobro.status_detail),
-    };
-  }
-
-  return {
-    estado: 'en_proceso',
-    mensaje: 'Tu pago quedó en revisión. Apenas se apruebe te llega la entrada por correo.',
-    codigo: String(pago.pagoId),
-  };
-}
-
-/** Traduce los motivos de rechazo mas comunes de Mercado Pago. */
-function mensajeDeRechazo(detalle?: string): string {
-  const mapa: Record<string, string> = {
-    cc_rejected_insufficient_amount: 'La tarjeta no tiene saldo suficiente.',
-    cc_rejected_bad_filled_card_number: 'Revisa el número de la tarjeta.',
-    cc_rejected_bad_filled_date: 'Revisa la fecha de vencimiento.',
-    cc_rejected_bad_filled_security_code: 'Revisa el código de seguridad.',
-    cc_rejected_bad_filled_other: 'Revisa los datos de la tarjeta.',
-    cc_rejected_call_for_authorize: 'Tu banco tiene que autorizar el pago. Llámalos y reintenta.',
-    cc_rejected_card_disabled: 'La tarjeta está inhabilitada. Llama a tu banco.',
-    cc_rejected_duplicated_payment: 'Ya hiciste un pago igual. Si fue un error, espera un rato.',
-    cc_rejected_high_risk: 'El pago fue rechazado por seguridad. Prueba con otro medio.',
-    cc_rejected_max_attempts: 'Demasiados intentos. Prueba con otra tarjeta.',
-  };
-
-  return mapa[detalle ?? ''] ?? 'El pago fue rechazado. Prueba con otra tarjeta o transfiere a nuestra cuenta.';
 }
 
 // ---------------------------------------------------------------------------
-// Comun a las dos pasarelas
+// Comun a las pasarelas
 // ---------------------------------------------------------------------------
 
 /**

@@ -67,7 +67,7 @@ export function estadoPasarela(): {
     return {
       elegida,
       activa: null,
-      problema: `"${elegida}" no es una pasarela valida. Usa fintoc o mercadopago.`,
+      problema: `"${elegida}" no es una pasarela valida. Usa fintoc, mercadopago o flow.`,
     };
   }
 
@@ -80,7 +80,7 @@ export function estadoPasarela(): {
           ? 'Faltan FINTOC_SECRET_KEY o FINTOC_PUBLIC_KEY.'
           : elegida === 'flow'
             ? 'Faltan FLOW_API_KEY o FLOW_SECRET_KEY.'
-            : 'Faltan MERCADOPAGO_ACCESS_TOKEN o MERCADOPAGO_PUBLIC_KEY.',
+            : 'Falta MERCADOPAGO_ACCESS_TOKEN.',
     };
   }
 

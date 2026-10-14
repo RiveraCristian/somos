@@ -175,11 +175,11 @@ cobrando por donde no correspondía.
 
 | | Fintoc | Mercado Pago |
 |---|---|---|
-| Medio | Transferencia desde el banco | Tarjeta de crédito y débito |
+| Medio | Transferencia desde el banco | Tarjetas y otros medios; sin cuenta de Mercado Pago |
 | Comisión | ~1% + IVA | Bastante más alta |
 | Abono | 1 día hábil | Según el plan |
 | Alta | Autoservicio para pruebas; contrato para producción | Autoservicio, inmediata |
-| Dentro de la página | Sí, widget embebido | Sí, Checkout Bricks |
+| Dentro de la página | Sí, widget embebido | No: Checkout Pro, se paga en mercadopago.cl y se vuelve |
 
 ### Fintoc
 
@@ -209,24 +209,106 @@ Para producción hay que firmar el contrato de licencia y usar las llaves *live*
 encima de la página. Si el widget no logra montarse, aparece un enlace al checkout
 alojado como plan B para que nadie quede sin poder pagar.
 
-### Mercado Pago
-
-Credenciales inmediatas desde el
-[panel de desarrolladores](https://www.mercadopago.cl/developers/panel/app):
+### Mercado Pago (Checkout Pro)
 
 ```bash
 PASARELA="mercadopago"
-MERCADOPAGO_ACCESS_TOKEN="..."   # cobra desde el servidor
-MERCADOPAGO_PUBLIC_KEY="..."     # monta el formulario en el navegador
+MERCADOPAGO_ACCESS_TOKEN="APP_USR-..."   # solo servidor; nunca llega al navegador
+MERCADOPAGO_WEBHOOK_SECRET="..."         # Tus integraciones > Webhooks > Clave secreta
+MERCADOPAGO_PUBLIC_KEY="APP_USR-..."     # opcional: la redirección no la usa
 ```
 
-**Cómo funciona por dentro**: se usa el **Payment Brick** de Checkout Bricks. El
-formulario de tarjeta se renderiza dentro de la página, tokeniza los datos en el
-navegador —las claves de la tarjeta nunca pasan por este servidor— y el `onSubmit`
-manda ese token al backend, que cobra contra `POST /v1/payments`.
+**Cómo funciona por dentro** (SDK oficial `mercadopago` v3):
 
-**El monto se fija en el servidor**, tomado del tipo de entrada. Si viniera del
-navegador, cualquiera podría pagar mil pesos por una entrada de doce mil.
+1. En `/mi-entrada/<token>` el botón **Pagar con Mercado Pago** llama a
+   `iniciarPagoMercadoPago`. El navegador solo manda el token del link privado.
+2. El servidor verifica que la reserva exista, no esté anulada, que el teléfono
+   **siga activo en la lista de invitados** y que quede saldo. Si ya está pagada,
+   el botón queda deshabilitado con *"Tu aporte ya fue recibido"*.
+3. Crea una **preferencia** con el saldo congelado en la base, moneda `CLP` y
+   `external_reference = asistente-<id>-<azar>`, y guarda el intento en `pagos`
+   como `pendiente`. La preferencia vence en una hora.
+4. El comprador paga en mercadopago.cl —con tarjeta como invitado, o con su cuenta—
+   y vuelve a `/mi-entrada/<token>?pago=mp`.
+5. El webhook (o la conciliación al volver) le pregunta a la API **todos los cobros
+   de esa referencia** y [`evaluarIntento`](src/lib/mercadopago.ts) decide. Solo da
+   la entrada por pagada si hay un cobro `approved` con **referencia, monto y
+   moneda exactos**. Ahí se emite la entrada y sale el correo.
+
+| Estado en Mercado Pago | Estado del pago acá |
+|---|---|
+| `approved` con monto, moneda y referencia exactos | `confirmado` (APROBADO): se emite la entrada |
+| `pending`, `in_process`, `authorized` | `pendiente`; no se abre otro intento mientras tanto |
+| `rejected` | `pendiente` mientras la preferencia viva (puede reintentar), `rechazado` al vencer |
+| sin cobro y vencida, o `cancelled` | `cancelado` |
+| `refunded`, `charged_back` | `reembolsado`: sale del total y, si la entrada queda sin pago, se anula |
+
+**Lo que no se resuelve solo queda en `/admin/pagos` como incidencia** (tabla
+`incidencias_pago`), con el id del cobro en Mercado Pago:
+
+- **Pago doble**: dos cobros aprobados para la misma persona. La entrada se emite
+  una vez; el segundo cobro se devuelve desde el panel de Mercado Pago, y el
+  webhook trae el reembolso de vuelta y ajusta la caja.
+- **Monto o moneda distintos**: el cobro no se acepta como pago.
+- **Reembolso de una entrada ya usada**, **contracargo**, **pago en una reserva anulada**.
+
+**Concurrencia.** Confirmar y revertir toman la fila del asistente con
+`SELECT … FOR UPDATE` ([`emision.ts`](src/lib/emision.ts)): si el webhook y la
+conciliación llegan a la vez, el segundo ve lo que dejó el primero. Las notificaciones
+se deduplican por su id; una que falló **sí** se reprocesa cuando Mercado Pago la
+reintenta.
+
+**Abuso.** Abrir el checkout pide el token secreto del link privado y tiene tope de
+8 intentos por entrada y 30 por IP cada 10 minutos ([`limitador.ts`](src/lib/limitador.ts)).
+El tope vive en memoria: alcanza mientras la app corra en un solo proceso.
+
+#### Configurar el webhook
+
+1. [Tus integraciones](https://www.mercadopago.cl/developers/panel/app) → tu aplicación
+   → **Webhooks** → **Configurar notificaciones**.
+2. URL: `https://<tu-dominio>/api/webhooks/mercadopago`. El panel tiene una URL para
+   **modo de prueba** y otra para **modo productivo**: llena la que corresponda.
+3. Evento: **Pagos**. Nada más; lo demás se ignora.
+4. Copia la **clave secreta** a `MERCADOPAGO_WEBHOOK_SECRET` y reinicia.
+5. Con **Simular** el panel manda una notificación de prueba: debe responder 200
+   (`sinPago`, porque ese pago no es de ningún intento). Un 401 es secreto mal copiado.
+
+El webhook **exige HTTPS público**. En local no llega nada, pero no hace falta: al
+volver del checkout la página le pregunta a Mercado Pago cada 3 segundos y la entrada
+se emite igual. Para probar la firma en local:
+`npm run mp:sandbox -- webhook <id-de-pago>`.
+
+#### Probar en sandbox
+
+1. En **Tus integraciones → Cuentas de prueba** crea dos cuentas de Chile: una
+   **vendedora** y una **compradora**.
+2. Entra al panel de desarrolladores **con la vendedora**, crea una aplicación
+   (Checkout Pro) y copia sus credenciales al `.env`. `/admin/pagos` debe decir
+   *credenciales de prueba*.
+3. `npm run mp:sandbox` verifica la cuenta y crea una preferencia de $1.000 que no
+   toca la base. Ábrela **en incógnito** y paga.
+4. Prueba de punta a punta: reserva en `/comprar` con un número de la lista, entra a
+   tu link privado y paga. Las [tarjetas de prueba de Chile](https://www.mercadopago.cl/developers/es/docs/checkout-pro/integration-test/test-purchases)
+   deciden el resultado según el **nombre del titular**: `APRO` aprobado, `OTHE`
+   rechazado, `CONT` pendiente. Ojo: no inicies sesión con tu cuenta real en esa ventana.
+5. `npm run mp:sandbox -- pago <id>` muestra el cobro y cómo lo evalúa el sitio.
+6. `npm test` corre las pruebas de las reglas (monto, moneda, referencia, pago doble,
+   reembolsos, firma), sin red ni base.
+
+#### Pasar a producción
+
+1. La cuenta real de Mercado Pago tiene que estar verificada y la aplicación
+   **activada para producción** (Tus integraciones → la app → Credenciales de
+   producción; pide rubro y sitio web).
+2. En el `.env` del droplet: `MERCADOPAGO_ACCESS_TOKEN` de **producción**, y la
+   clave secreta del webhook **de modo productivo**, que es distinta de la de prueba.
+3. `APP_URL` con `https://`. Así Checkout Pro devuelve solo al comprador
+   (`auto_return`) y el webhook es alcanzable.
+4. Configura la URL del webhook en **modo productivo** (paso 2 de arriba).
+5. `PASARELA="mercadopago"` y reinicia. Confirma en `/admin/pagos` que diga
+   *credenciales de produccion* y la cuenta correcta.
+6. Haz un cobro real chico y devuélvelo desde Mercado Pago: tiene que aparecer como
+   **Devuelto** en el panel y la entrada como anulada.
 
 ### Webhooks
 
@@ -248,10 +330,9 @@ la única (ver abajo).
 
 ### Decisiones que conviene conocer
 
-- **Nunca se confía en el navegador.** El `onSuccess` del widget y la respuesta del
-  Brick solo mueven la interfaz; la entrada se emite cuando la pasarela lo confirma.
-  Fintoc lo dice explícito en su documentación, y con Mercado Pago se vuelve a
-  consultar la API aunque ya tengamos la respuesta del cobro en la mano.
+- **Nunca se confía en el navegador.** El `onSuccess` del widget y los parámetros con
+  que Mercado Pago o Flow devuelven al comprador solo mueven la interfaz; la entrada se
+  emite cuando la API de la pasarela lo confirma.
 - **Un solo camino emite entradas**: [`src/lib/emision.ts`](src/lib/emision.ts),
   compartido por los dos webhooks, la conciliación y el panel. Confirmar dos veces el
   mismo pago es inofensivo.

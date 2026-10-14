@@ -62,6 +62,9 @@ model Usuario {
   pagosModificados         Pago[]              @relation("PagoModificador")
   pagosEliminados          Pago[]              @relation("PagoEliminador")
   pagosRevisados           Pago[]              @relation("PagoRevisor")
+  incidenciasCreadas       IncidenciaPago[]    @relation("IncidenciaCreador")
+  incidenciasModificadas   IncidenciaPago[]    @relation("IncidenciaModificador")
+  incidenciasResueltas     IncidenciaPago[]    @relation("IncidenciaResolutor")
   entradasCreadas          Entrada[]           @relation("EntradaCreador")
   entradasModificadas      Entrada[]           @relation("EntradaModificador")
   entradasEliminadas       Entrada[]           @relation("EntradaEliminador")
@@ -355,8 +358,9 @@ model Asistente {
   modificador Usuario?    @relation("AsistenteModificador", fields: [modifiedBy], references: [usuarioId])
   eliminador  Usuario?    @relation("AsistenteEliminador", fields: [deletedBy], references: [usuarioId])
 
-  pagos   Pago[]
-  entrada Entrada?
+  pagos       Pago[]
+  entrada     Entrada?
+  incidencias IncidenciaPago[]
 
   /// El unique de (evento, correo) vive en SQL y no aca: es PARCIAL, solo
   /// sobre las reservas vivas, para que anular una libere el correo. Prisma no
@@ -382,7 +386,8 @@ model Pago {
   pagoMonto       Int    @map("pago_monto")
   /// transferencia | efectivo | fintoc | mercadopago | otro
   pagoMetodo      String @default("transferencia") @map("pago_metodo") @db.VarChar(30)
-  /// pendiente | confirmado | rechazado
+  /// pendiente | confirmado | rechazado | cancelado | reembolsado
+  /// confirmado = aprobado: es el unico estado que suma al total pagado.
   pagoEstado      String @default("pendiente") @map("pago_estado") @db.VarChar(30)
   /// manual = alguien revisa el comprobante · fintoc / mercadopago = pasarela
   pagoProveedor   String @default("manual") @map("pago_proveedor") @db.VarChar(30)
@@ -390,9 +395,13 @@ model Pago {
   /// Identificadores del cobro en la pasarela. Se nombran de forma generica
   /// porque los dos proveedores tienen dos niveles pero los llaman distinto:
   ///   fintoc      → checkout session (cs_...) y payment intent (pi_...)
-  ///   mercadopago → no hay sesion previa, solo el id del pago
+  ///   mercadopago → preferencia de Checkout Pro y id del pago (Payments API)
   pagoExternoSesion String? @unique @map("pago_externo_sesion") @db.VarChar(120)
   pagoExternoPago   String? @map("pago_externo_pago") @db.VarChar(120)
+  /// Estado tal cual lo dice la pasarela (approved, rejected, in_process...).
+  /// `pagoEstado` es la traduccion; este queda para mostrar el motivo real.
+  pagoExternoEstado  String? @map("pago_externo_estado") @db.VarChar(40)
+  pagoExternoDetalle String? @map("pago_externo_detalle") @db.VarChar(80)
 
   /// Nombre del archivo guardado en UPLOADS_DIR (no es la ruta absoluta).
   pagoComprobanteArchivo String? @map("pago_comprobante_archivo") @db.VarChar(300)
@@ -421,6 +430,10 @@ model Pago {
   modificador Usuario?  @relation("PagoModificador", fields: [modifiedBy], references: [usuarioId])
   eliminador  Usuario?  @relation("PagoEliminador", fields: [deletedBy], references: [usuarioId])
 
+  incidencias IncidenciaPago[]
+
+  /// `pagoReferencia` es unica por pasarela (sin contar los manuales). Vive en
+  /// SQL porque es un indice parcial. Ver la migracion 0012.
   @@index([pagoAsistenteId])
   @@index([pagoEstado])
   @@map("pagos")
@@ -496,6 +509,42 @@ model Escaneo {
 // con UNIQUE y se descarta el duplicado. El payload crudo queda almacenado para
 // poder reprocesar o auditar un cobro sin depender de los logs.
 // ---------------------------------------------------------------------------
+/// Lo que el cobro automatico no debe resolver solo: dos pagos aprobados para
+/// la misma persona, un monto que no calza, un reembolso de una entrada usada.
+/// Queda abierta hasta que alguien la revisa en /admin/pagos.
+model IncidenciaPago {
+  incidenciaId            Int       @id @default(autoincrement()) @map("incidencia_id")
+  incidenciaAsistenteId   Int       @map("incidencia_asistente_id")
+  incidenciaPagoId        Int?      @map("incidencia_pago_id")
+  /// pago_duplicado | monto_no_coincide | moneda_no_coincide | reembolso_parcial
+  /// | reembolso | reembolso_entrada_usada | contracargo | pago_en_reserva_anulada
+  incidenciaTipo          String    @map("incidencia_tipo") @db.VarChar(40)
+  incidenciaExternoPago   String?   @map("incidencia_externo_pago") @db.VarChar(120)
+  incidenciaMonto         Int?      @map("incidencia_monto")
+  incidenciaDetalle       String    @map("incidencia_detalle") @db.VarChar(500)
+  /// Llave de idempotencia: el mismo hecho reportado dos veces es una fila.
+  incidenciaLlave         String    @unique @map("incidencia_llave") @db.VarChar(200)
+  /// abierta | resuelta
+  incidenciaEstado        String    @default("abierta") @map("incidencia_estado") @db.VarChar(20)
+  incidenciaResueltaPor   Int?      @map("incidencia_resuelta_por")
+  incidenciaFechaResuelta DateTime? @map("incidencia_fecha_resuelta")
+
+  createdBy  Int      @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedBy Int?     @map("modified_by")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  asistente   Asistente @relation(fields: [incidenciaAsistenteId], references: [asistenteId])
+  pago        Pago?     @relation(fields: [incidenciaPagoId], references: [pagoId])
+  resolutor   Usuario?  @relation("IncidenciaResolutor", fields: [incidenciaResueltaPor], references: [usuarioId])
+  creador     Usuario   @relation("IncidenciaCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario?  @relation("IncidenciaModificador", fields: [modifiedBy], references: [usuarioId])
+
+  @@index([incidenciaEstado])
+  @@index([incidenciaAsistenteId])
+  @@map("incidencias_pago")
+}
+
 model Webhook {
   webhookId         Int      @id @default(autoincrement()) @map("webhook_id")
   /// fintoc | mercadopago | flow

@@ -2,7 +2,7 @@ import { USUARIO_SISTEMA_ID } from './constantes';
 import { confirmarPagoYEmitir } from './emision';
 import { obtenerSesionCheckout, sesionPagada } from './fintoc';
 import { obtenerEstadoFlow, pagoFlowFallido, pagoFlowPagado } from './flow';
-import { obtenerPagoMercadoPago, pagoAprobado, pagoFallido } from './mercadopago';
+import { sincronizarIntentoMp } from './cobro-mercadopago';
 import { pasarelaActiva } from './pasarela';
 import { prisma } from './prisma';
 
@@ -65,16 +65,6 @@ async function consultarFlow(pago: PagoPendiente): Promise<Consulta> {
   return { veredicto: 'en_curso', idExterno };
 }
 
-async function consultarMercadoPago(pago: PagoPendiente): Promise<Consulta> {
-  if (!pago.pagoExternoPago) return { veredicto: 'en_curso' };
-
-  const cobro = await obtenerPagoMercadoPago(pago.pagoExternoPago);
-  if (!cobro) return { veredicto: 'en_curso' };
-  if (pagoAprobado(cobro)) return { veredicto: 'cobrado' };
-  if (pagoFallido(cobro)) return { veredicto: 'fallido' };
-  return { veredicto: 'en_curso' };
-}
-
 /**
  * Le pregunta a la pasarela por los cobros pendientes de un asistente y cierra
  * los que ya se resolvieron.
@@ -102,7 +92,9 @@ export async function conciliarPagosPasarela(
 
   if (!asistente) return { pagado: false, reciencerrado: false };
 
-  if (asistente.entrada) {
+  // Una entrada anulada por un reembolso no cuenta como pagada: la persona
+  // tiene que poder pagar de nuevo.
+  if (asistente.entrada && asistente.entrada.entradaEstado !== 'anulada') {
     return { pagado: true, codigo: asistente.entrada.entradaCodigo, reciencerrado: false };
   }
 
@@ -126,13 +118,29 @@ export async function conciliarPagosPasarela(
     take: 3,
   });
 
+  // Mercado Pago tiene su propia sincronizacion: un intento puede tener varios
+  // cobros, y hay que comparar monto, moneda y referencia antes de dar nada
+  // por pagado. Vive en cobro-mercadopago.ts, que es tambien lo que usa el
+  // webhook: un solo camino decide.
+  if (pasarela === 'mercadopago') {
+    for (const pago of pendientes) {
+      try {
+        const resultado = await sincronizarIntentoMp(pago.pagoId);
+        if (resultado.estado === 'confirmado') {
+          return { pagado: true, codigo: resultado.codigo, reciencerrado: resultado.reciencerrado };
+        }
+      } catch (e) {
+        // Una caida de Mercado Pago no puede romper la pagina privada: el
+        // webhook o la proxima visita lo cierran.
+        console.error('[mercadopago] no se pudo conciliar el pago', pago.pagoId, e);
+      }
+    }
+    return { pagado: false, reciencerrado: false };
+  }
+
   for (const pago of pendientes) {
     const { veredicto, idExterno } =
-      pasarela === 'fintoc'
-        ? await consultarFintoc(pago)
-        : pasarela === 'flow'
-          ? await consultarFlow(pago)
-          : await consultarMercadoPago(pago);
+      pasarela === 'fintoc' ? await consultarFintoc(pago) : await consultarFlow(pago);
 
     // Se guarda antes de cerrar el cobro: si algo falla mas abajo, al menos
     // queda por donde seguirle la pista al dinero.

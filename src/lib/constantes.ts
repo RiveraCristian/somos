@@ -22,7 +22,8 @@ export type EstadoEvento = (typeof ESTADOS_EVENTO)[number];
 export const ESTADOS_ASISTENTE = ['pendiente', 'confirmado', 'anulado'] as const;
 export type EstadoAsistente = (typeof ESTADOS_ASISTENTE)[number];
 
-export const ESTADOS_PAGO = ['pendiente', 'confirmado', 'rechazado'] as const;
+/** confirmado = aprobado. Es el unico que suma al total pagado. */
+export const ESTADOS_PAGO = ['pendiente', 'confirmado', 'rechazado', 'cancelado', 'reembolsado'] as const;
 export type EstadoPago = (typeof ESTADOS_PAGO)[number];
 
 export const METODOS_PAGO = [
@@ -42,7 +43,7 @@ export const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   transferencia: 'Transferencia bancaria',
   efectivo: 'Efectivo',
   fintoc: 'Transferencia con Fintoc',
-  mercadopago: 'Tarjeta (Mercado Pago)',
+  mercadopago: 'Mercado Pago',
   flow: 'Flow',
   otro: 'Otro',
 };

@@ -175,3 +175,36 @@ export async function reconciliarConPasarela(
       : 'El cobro ya estaba confirmado.',
   };
 }
+
+/**
+ * Marca una incidencia como revisada.
+ *
+ * No devuelve plata ni anula nada: eso se hace en Mercado Pago (y el webhook
+ * trae el reembolso de vuelta). Esto solo la saca de la lista de pendientes,
+ * dejando anotado quien la cerro.
+ */
+export async function resolverIncidencia(
+  _previo: EstadoRevision,
+  formulario: FormData,
+): Promise<EstadoRevision> {
+  const usuario = await requerirUsuario(ROLES_ADMIN, '/admin/pagos');
+  const incidenciaId = Number(formulario.get('incidenciaId'));
+
+  if (!Number.isInteger(incidenciaId) || incidenciaId <= 0) {
+    return { error: 'Incidencia inválida.' };
+  }
+
+  const { count } = await prisma.incidenciaPago.updateMany({
+    where: { incidenciaId, incidenciaEstado: 'abierta' },
+    data: {
+      incidenciaEstado: 'resuelta',
+      incidenciaResueltaPor: usuario.usuarioId,
+      incidenciaFechaResuelta: new Date(),
+      modifiedBy: usuario.usuarioId,
+    },
+  });
+
+  revalidatePath('/admin/pagos');
+
+  return count > 0 ? { ok: 'Incidencia marcada como revisada.' } : { error: 'Ya estaba revisada.' };
+}

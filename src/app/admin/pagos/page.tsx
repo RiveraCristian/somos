@@ -1,14 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FileWarning, Inbox, Info, Paperclip, Zap } from 'lucide-react';
+import { AlertTriangle, FileWarning, Inbox, Info, Paperclip, Zap } from 'lucide-react';
 
 import { EncabezadoPagina } from '@/components/admin/EncabezadoPagina';
 import { ETIQUETAS_METODO, type MetodoPago } from '@/lib/constantes';
+import { ETIQUETAS_INCIDENCIA, type TipoIncidencia } from '@/lib/incidencias';
 import { ETIQUETAS_PASARELA, diagnosticoPasarela } from '@/lib/pasarela';
 import { fechaHora, hace, pesos, tamanoArchivo } from '@/lib/formato';
 import { prisma } from '@/lib/prisma';
 
 import { AccionesPago } from './AccionesPago';
+import { ResolverIncidencia } from './ResolverIncidencia';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,7 @@ const FILTROS = [
   { valor: 'pendiente', texto: 'Por revisar' },
   { valor: 'confirmado', texto: 'Confirmados' },
   { valor: 'rechazado', texto: 'Rechazados' },
+  { valor: 'reembolsado', texto: 'Devueltos' },
   { valor: 'todos', texto: 'Todos' },
 ] as const;
 
@@ -29,7 +32,7 @@ export default async function PaginaPagos({
   const parametros = await searchParams;
   const filtro = FILTROS.find((f) => f.valor === parametros.estado)?.valor ?? 'pendiente';
 
-  const [pagos, conteos] = await Promise.all([
+  const [pagos, conteos, incidencias] = await Promise.all([
     prisma.pago.findMany({
       where: {
         isDeleted: false,
@@ -43,6 +46,12 @@ export default async function PaginaPagos({
       by: ['pagoEstado'],
       where: { isDeleted: false },
       _count: { _all: true },
+    }),
+    prisma.incidenciaPago.findMany({
+      where: { incidenciaEstado: 'abierta' },
+      include: { asistente: { select: { asistenteNombre: true, asistenteCorreo: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
     }),
   ]);
 
@@ -93,6 +102,53 @@ export default async function PaginaPagos({
         </div>
       </div>
 
+      {/* -------------------------------------------------------- Incidencias */}
+      {/* Lo que el cobro automatico detecto y no resuelve solo. La plata se
+          devuelve desde el panel de Mercado Pago; el webhook trae el reembolso
+          de vuelta y la caja se ajusta sola. */}
+      {incidencias.length > 0 && (
+        <section className="mb-7 rounded-[12px] border border-[rgba(255,77,109,0.3)] bg-[rgba(255,77,109,0.05)] p-5">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle size={18} className="text-error" />
+            <h2 className="font-medium">
+              {incidencias.length === 1
+                ? '1 incidencia por revisar'
+                : `${incidencias.length} incidencias por revisar`}
+            </h2>
+          </div>
+
+          <ul className="mt-4 flex flex-col divide-y divide-[var(--color-line)]">
+            {incidencias.map((inc) => (
+              <li key={inc.incidenciaId} className="flex flex-wrap items-start gap-4 py-3.5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="insignia insignia-error">
+                      {ETIQUETAS_INCIDENCIA[inc.incidenciaTipo as TipoIncidencia] ??
+                        inc.incidenciaTipo}
+                    </span>
+                    <Link
+                      href={`/admin/asistentes?buscar=${encodeURIComponent(inc.asistente.asistenteCorreo)}`}
+                      className="font-medium underline-offset-4 hover:text-cyan hover:underline"
+                    >
+                      {inc.asistente.asistenteNombre}
+                    </Link>
+                    {inc.incidenciaMonto !== null && (
+                      <span className="dato text-sm text-dim">{pesos(inc.incidenciaMonto)}</span>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-sm text-dim">{inc.incidenciaDetalle}</p>
+                  <p className="dato mt-1 text-xs text-faint">
+                    {hace(inc.createdAt)}
+                    {inc.incidenciaExternoPago && ` · Cobro ${inc.incidenciaExternoPago}`}
+                  </p>
+                </div>
+                <ResolverIncidencia incidenciaId={inc.incidenciaId} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ------------------------------------------------------------ Filtros */}
       <nav className="mb-7 flex flex-wrap gap-2">
         {FILTROS.map((f) => {
@@ -141,6 +197,10 @@ export default async function PaginaPagos({
                       <span className="insignia insignia-ok">Confirmado</span>
                     ) : pago.pagoEstado === 'rechazado' ? (
                       <span className="insignia insignia-error">Rechazado</span>
+                    ) : pago.pagoEstado === 'cancelado' ? (
+                      <span className="insignia insignia-neutral">Cancelado</span>
+                    ) : pago.pagoEstado === 'reembolsado' ? (
+                      <span className="insignia insignia-neutral">Devuelto</span>
                     ) : (
                       <span className="insignia insignia-pendiente">Por revisar</span>
                     )}
@@ -182,6 +242,12 @@ export default async function PaginaPagos({
                     {pago.pagoReferencia && <span>Op. {pago.pagoReferencia}</span>}
                     {pago.pagoExternoSesion && <span>Sesión {pago.pagoExternoSesion}</span>}
                     {pago.pagoExternoPago && <span>Cobro {pago.pagoExternoPago}</span>}
+                    {pago.pagoExternoEstado && (
+                      <span>
+                        En pasarela: {pago.pagoExternoEstado}
+                        {pago.pagoExternoDetalle ? ` (${pago.pagoExternoDetalle})` : ''}
+                      </span>
+                    )}
                     {pago.pagoFechaRevisado && pago.revisor && (
                       <span>
                         Revisado por {pago.revisor.usuarioNombre} ·{' '}
