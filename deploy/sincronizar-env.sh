@@ -60,7 +60,12 @@ echo "Secretos sincronizados desde GitHub: $escritas escritas, $omitidas sin val
 
 # Util para entender por que el cobro o el correo no andan, sin revelar nada:
 # lo que importa es cuales quedaron vacias, no cuanto valen.
-vacias="$(grep -E '^[A-Z_]+=""$' "$ENV" | cut -d= -f1 | tr '\n' ' ')"
+# El `|| true` es obligatorio: grep devuelve 1 cuando no encuentra nada, y
+# con `set -e` eso mata el script justo en el caso bueno, cuando ya no queda
+# ninguna variable vacia. Paso de verdad: el despliegue fallaba DESPUES de
+# haber sincronizado bien, y el mensaje de exito quedaba justo antes del
+# error, que es lo mas confuso posible.
+vacias="$(grep -E '^[A-Z_]+=""$' "$ENV" | cut -d= -f1 | tr '\n' ' ' || true)"
 if [ -n "$vacias" ]; then
   echo "Siguen vacias en el servidor: $vacias"
 fi
