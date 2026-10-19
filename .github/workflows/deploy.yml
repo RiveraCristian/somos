@@ -110,6 +110,48 @@ jobs:
           scp -i ~/.ssh/id_ed25519 deploy/docker-compose.prod.yml \
             "deploy@${{ secrets.DROPLET_HOST }}:/opt/somos/docker-compose.yml"
 
+      # Los secretos de la aplicacion viven en GitHub y bajan al .env del
+      # servidor en cada despliegue. Solo se escriben los que tienen valor: uno
+      # que no exista en GitHub se ignora y queda lo que ya hubiera en el
+      # servidor, para que agregar un secreto no apague los demas.
+      #
+      # DATABASE_URL y JWT_SECRET quedan fuera: los genera el bootstrap, son
+      # propios de cada servidor y no tienen por que viajar por CI.
+      - name: Sincronizar secretos de la aplicacion
+        env:
+          PASARELA: ${{ secrets.PASARELA }}
+          FLOW_API_KEY: ${{ secrets.FLOW_API_KEY }}
+          FLOW_SECRET_KEY: ${{ secrets.FLOW_SECRET_KEY }}
+          FLOW_AMBIENTE: ${{ secrets.FLOW_AMBIENTE }}
+          MERCADOPAGO_ACCESS_TOKEN: ${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
+          MERCADOPAGO_PUBLIC_KEY: ${{ secrets.MERCADOPAGO_PUBLIC_KEY }}
+          MERCADOPAGO_WEBHOOK_SECRET: ${{ secrets.MERCADOPAGO_WEBHOOK_SECRET }}
+          FINTOC_SECRET_KEY: ${{ secrets.FINTOC_SECRET_KEY }}
+          FINTOC_PUBLIC_KEY: ${{ secrets.FINTOC_PUBLIC_KEY }}
+          FINTOC_WEBHOOK_SECRET: ${{ secrets.FINTOC_WEBHOOK_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_ENABLED: ${{ secrets.EMAIL_ENABLED }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          AVISO_DESARROLLO: ${{ secrets.AVISO_DESARROLLO }}
+        run: |
+          claves="PASARELA FLOW_API_KEY FLOW_SECRET_KEY FLOW_AMBIENTE
+          MERCADOPAGO_ACCESS_TOKEN MERCADOPAGO_PUBLIC_KEY MERCADOPAGO_WEBHOOK_SECRET
+          FINTOC_SECRET_KEY FINTOC_PUBLIC_KEY FINTOC_WEBHOOK_SECRET
+          RESEND_API_KEY EMAIL_ENABLED EMAIL_FROM AVISO_DESARROLLO"
+
+          pares="$(mktemp)"
+          chmod 600 "$pares"
+          for clave in $claves; do
+            printf "%s=%s\n" "$clave" "${!clave}" >> "$pares"
+          done
+
+          {
+            printf "export PARES_B64=%s\n" "$(base64 -w0 < "$pares")"
+            cat deploy/sincronizar-env.sh
+          } | ssh -i ~/.ssh/id_ed25519 "deploy@${{ secrets.DROPLET_HOST }}" 'bash -s'
+
+          rm -f "$pares"
+
       # El script remoto y sus secretos viajan por stdin. Nada de esto va como
       # argumento: los argumentos quedan a la vista en el `ps` del servidor.
       - name: Desplegar
