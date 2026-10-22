@@ -75,7 +75,7 @@ export function eventoDeVitrina() {
         tipoEntradaNombre: 'General',
         tipoEntradaSlug: 'general',
         tipoEntradaDescripcion: 'Acceso al recinto durante toda la noche.',
-        tipoEntradaPrecio: 20000,
+        tipoEntradaPrecio: 15000,
         tipoEntradaCupo: null,
         tipoEntradaOrden: 1,
         tipoEntradaActivo: true,
@@ -175,8 +175,9 @@ export function eventoDeVitrina() {
         preguntaEventoId: eventoId,
         preguntaTexto: '¿Por qué sube el precio?',
         preguntaRespuesta:
-          'Las primeras 100 entradas valen $20.000, después suben a $25.000, y el mismo día ' +
-          'del evento cuestan $30.000 en la puerta. Mientras antes compres, menos pagas.',
+          'Las primeras 50 entradas valen $15.000, las 150 siguientes $20.000, las 50 que ' +
+          'vienen después $25.000, y de ahí en adelante $30.000. El mismo día del evento ' +
+          'cuestan $30.000 en la puerta. Mientras antes compres, menos pagas.',
         preguntaOrden: 3,
         preguntaActiva: true,
         ...auditoria,
@@ -204,17 +205,19 @@ export function eventoDeVitrina() {
 export const CUPOS_VITRINA = new Map<number, number>([[1, 37]]);
 
 export const ETAPAS_VITRINA: Etapa[] = [
-  { etapaId: 1, nombre: 'Primera tanda', precio: 20000, cupo: 100, orden: 1, enPuerta: false },
-  { etapaId: 2, nombre: 'Segunda tanda', precio: 25000, cupo: null, orden: 2, enPuerta: false },
-  { etapaId: 3, nombre: 'En puerta', precio: 30000, cupo: null, orden: 3, enPuerta: true },
+  { etapaId: 1, nombre: 'Primera tanda', precio: 15000, cupo: 50, orden: 1, enPuerta: false },
+  { etapaId: 2, nombre: 'Segunda tanda', precio: 20000, cupo: 150, orden: 2, enPuerta: false },
+  { etapaId: 3, nombre: 'Tercera tanda', precio: 25000, cupo: 50, orden: 3, enPuerta: false },
+  { etapaId: 4, nombre: 'Cuarta tanda', precio: 30000, cupo: null, orden: 4, enPuerta: false },
+  { etapaId: 5, nombre: 'En puerta', precio: 30000, cupo: null, orden: 5, enPuerta: true },
 ];
 
 export const ETAPA_VIGENTE_VITRINA: EtapaVigente = {
   etapaId: 1,
   nombre: 'Primera tanda',
-  precio: 20000,
-  cupo: 100,
-  restantes: 63,
+  precio: 15000,
+  cupo: 50,
+  restantes: 13,
   enPuerta: false,
   vendidas: 37,
 };

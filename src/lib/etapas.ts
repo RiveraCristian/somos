@@ -6,9 +6,9 @@ import { ETAPAS_VITRINA, ETAPA_VIGENTE_VITRINA, MODO_VITRINA } from './vitrina';
  * Etapas de venta: cuanto vale una entrada ahora.
  *
  * El precio no vive en el tipo de entrada sino en la etapa vigente. Las etapas
- * avanzan por cantidad vendida (las primeras 100 valen una cosa, el resto
- * otra), salvo la etapa de puerta, que se activa el mismo dia del evento sin
- * importar cuanto se vendio.
+ * avanzan por cantidad vendida (las primeras 50 valen una cosa, las 150
+ * siguientes otra, y asi), salvo la etapa de puerta, que se activa el mismo
+ * dia del evento sin importar cuanto se vendio.
  *
  * Ojo: esto resuelve el precio VIGENTE, el que se le ofrece a quien todavia no
  * compra. Lo que cada asistente debe pagar ya quedo congelado en
