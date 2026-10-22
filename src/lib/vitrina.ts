@@ -45,7 +45,7 @@ export function eventoDeVitrina() {
     eventoNombre: 'SOMOS',
     eventoLema: 'Una noche, una pista, la gente de siempre.',
     eventoDescripcion:
-      'Compras tu entrada acá mismo y la pagas por transferencia. Apenas se confirma el pago te llega tu QR al correo.',
+      'Compras tu entrada acá mismo y la pagas con tarjeta. Apenas se confirma el pago te llega tu QR al correo.',
     eventoFechaInicio: fechaDeMuestra(),
     eventoFechaTermino: null,
     // Sin venue ni direccion: en el sitio publico la ubicacion es secreta y

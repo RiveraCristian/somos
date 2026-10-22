@@ -336,7 +336,7 @@ export default async function PaginaInicio() {
               <h2 className="titulo-display mt-3 text-3xl sm:text-4xl">Tres pasos y estás dentro</h2>
               <p className="mt-4 max-w-md leading-relaxed text-dim">
                 {evento.eventoDescripcion ??
-                  'Compras tu entrada, la pagas por transferencia y te llega tu QR al correo.'}
+                  'Compras tu entrada, la pagas en línea y te llega tu QR al correo.'}
               </p>
             </div>
 

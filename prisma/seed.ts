@@ -95,9 +95,9 @@ async function main() {
       eventoNombre: 'SOMOS',
       eventoLema: 'Una noche, un lugar, una sola entrada por persona.',
       eventoDescripcion:
-        'Compras tu entrada acá mismo y la pagas por transferencia. Apenas se confirma ' +
-        'el pago te llega tu entrada con un QR único a tu correo. En la puerta lo ' +
-        'escaneamos y listo.',
+        'Compras tu entrada acá mismo y la pagas con tarjeta de crédito o débito. ' +
+        'Apenas se confirma el pago te llega tu entrada con un QR único a tu correo. ' +
+        'En la puerta lo escaneamos y listo.',
       eventoFechaInicio: INICIO_EVENTO,
       eventoFechaTermino: TERMINO_EVENTO,
       // El lugar es secreto: la direccion se carga desde /admin/evento y solo
@@ -280,7 +280,7 @@ async function main() {
       ],
       [
         '¿Cómo pago?',
-        'Eliges tu entrada, dejas tu nombre y correo, y te la reservamos al tiro. Después te llevamos a Flow para pagar: acepta tarjetas de crédito y débito y transferencia bancaria. Apenas se confirma el pago vuelves al sitio, tu entrada con QR aparece en pantalla y te llega al correo.',
+        'Eliges tu entrada, dejas tu nombre y correo, y te la reservamos al tiro. Después te llevamos a Mercado Pago para pagar con tarjeta de crédito o débito; no necesitas tener cuenta. Apenas se confirma el pago vuelves al sitio, tu entrada con QR aparece en pantalla y te llega al correo.',
       ],
       [
         '¿Cuándo y a qué hora es?',
