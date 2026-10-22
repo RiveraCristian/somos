@@ -50,7 +50,7 @@ export function CargaMasiva({ eventoId }: { eventoId: number }) {
             type="number"
             min={1}
             max={10}
-            defaultValue={2}
+            defaultValue={1}
             className="campo-input"
           />
         </div>

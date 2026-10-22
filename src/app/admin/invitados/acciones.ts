@@ -33,7 +33,10 @@ export async function cargarInvitados(
   const usuario = await requerirUsuario(ROLES_ADMIN, '/admin/invitados');
 
   const eventoId = Number(formulario.get('eventoId'));
-  const cupo = Math.min(10, Math.max(1, Number(formulario.get('cupo')) || 2));
+  // Una por numero: es lo que promete el sitio. El 2 que habia aca venia de
+  // cuando cada invitado podia traer a alguien, y una carga masiva con el
+  // valor por defecto habria duplicado el aforo sin que nadie lo notara.
+  const cupo = Math.min(10, Math.max(1, Number(formulario.get('cupo')) || 1));
   const crudo = String(formulario.get('numeros') ?? '');
 
   if (!eventoId) return { error: 'No hay evento al cual cargar la lista.' };
