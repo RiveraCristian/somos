@@ -21,6 +21,11 @@ function refrescar() {
  *
  *     +56 9 1234 5678, Javiera
  *     991234567
+ *     +44 7737 540326, Pedro
+ *
+ * Un numero sin codigo de pais se toma como chileno. Los de otros paises hay
+ * que escribirlos con su codigo y el "+" adelante: es la unica forma de saber
+ * de donde son, y la persona tiene que escribirlo igual al comprar.
  *
  * Se trabaja en bloque a proposito: la lista llega por WhatsApp o por planilla,
  * y cargarla de a uno seria una invitacion a equivocarse. Los numeros que ya

@@ -30,7 +30,8 @@ const FUERA_DE_LISTA =
 /**
  * ¿Este numero puede sacar una entrada mas?
  *
- * `telefono` tiene que venir ya normalizado a +56XXXXXXXXX. Se pasa normalizado
+ * `telefono` tiene que venir ya normalizado a E.164 (+56XXXXXXXXX los chilenos,
+ * +<codigo><numero> los de afuera). Se pasa normalizado
  * a proposito: si esta funcion normalizara por su cuenta, seria facil llamarla
  * con un formato y guardar el asistente con otro, y el conteo dejaria de calzar.
  */

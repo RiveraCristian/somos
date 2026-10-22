@@ -31,11 +31,12 @@ export function CargaMasiva({ eventoId }: { eventoId: number }) {
           rows={8}
           required
           className="campo-textarea font-mono text-sm"
-          placeholder={'+56 9 1234 5678, Javiera\n991234567, Tomás\n+56987654321'}
+          placeholder={'+56 9 1234 5678, Javiera\n991234567, Tomás\n+44 7737 540326, Pedro'}
         />
         <span className="campo-ayuda">
           Uno por línea. Opcionalmente una coma y el nombre. Da lo mismo cómo esté escrito
-          el número: se normaliza solo.
+          el número: se normaliza solo. Si es de otro país, escríbelo con su código (+44…);
+          sin código se asume chileno.
         </span>
       </div>
 

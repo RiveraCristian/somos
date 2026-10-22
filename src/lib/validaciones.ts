@@ -23,7 +23,8 @@ export const esquemaRegistro = z.object({
       if (!normalizado) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Ese teléfono no se ve válido. Escríbelo como +56 9 1234 5678.',
+          message:
+            'Ese teléfono no se ve válido. Escríbelo como +56 9 1234 5678, o con tu código de país si es de otro lugar.',
         });
         return z.NEVER;
       }

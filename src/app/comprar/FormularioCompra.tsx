@@ -244,7 +244,10 @@ function CamposComprador() {
             className="campo-input"
             placeholder="+56 9 1234 5678"
           />
-          <span className="campo-ayuda">Con este número verificamos tu invitación.</span>
+          <span className="campo-ayuda">
+            Con este número verificamos tu invitación. Si es de otro país, escríbelo con el
+            código (+44, +34, …).
+          </span>
         </div>
       </div>
 

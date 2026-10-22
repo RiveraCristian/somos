@@ -26,13 +26,36 @@ import { readFileSync } from 'node:fs';
  * Se exige que alrededor no haya más dígitos para no morder un pedazo de algo
  * más largo: un RUT, un monto o un identificador no son teléfonos.
  */
-const CANDIDATO = /(?<![\d])(?:\+?56[\s.\-]*)?(9(?:[\s.\-]*\d){8})(?![\d])/g;
+const CHILENO = /(?<![\d+])(?:[+]?56[\s.\-]*)?(9(?:[\s.\-]*\d){8})(?![\d])/g;
 
-/** "+56 9 1234 5678" y variantes → "+56912345678". Null si no cuadra. */
+/**
+ * Número de otro país: tiene que venir con "+" y su código. Sin el "+" no hay
+ * forma de distinguirlo de un monto o de un identificador cualquiera, así que
+ * se buscan solo los explícitos. Entre 8 y 15 dígitos, que es lo que permite
+ * E.164.
+ */
+const INTERNACIONAL = /(?<![\d+])[+]([1-9](?:[\s.\-]*\d){7,14})(?![\d])/g;
+
+/** Lleva cualquier variante a E.164. Null si no cuadra. */
 function normalizar(crudo) {
   const digitos = crudo.replace(/\D/g, '');
+
+  // Chilenos: siempre 9 dígitos que parten en 9.
   if (digitos.length === 9 && digitos.startsWith('9')) return `+56${digitos}`;
   if (digitos.length === 11 && digitos.startsWith('569')) return `+${digitos}`;
+
+  // Cualquier otro país. Se excluye el 56 a propósito: un "+56" que no haya
+  // pasado por las dos reglas de arriba es un chileno mal escrito, no un
+  // número de otro lado, y guardarlo dejaría a esa persona fuera sin aviso.
+  if (
+    crudo.trim().startsWith('+') &&
+    !digitos.startsWith('56') &&
+    digitos.length >= 8 &&
+    digitos.length <= 15
+  ) {
+    return `+${digitos}`;
+  }
+
   return null;
 }
 
@@ -55,10 +78,12 @@ try {
 const numeros = new Set();
 let encontrados = 0;
 
-for (const coincidencia of texto.matchAll(CANDIDATO)) {
-  encontrados += 1;
-  const normalizado = normalizar(coincidencia[0]);
-  if (normalizado) numeros.add(normalizado);
+for (const patron of [CHILENO, INTERNACIONAL]) {
+  for (const coincidencia of texto.matchAll(patron)) {
+    encontrados += 1;
+    const normalizado = normalizar(coincidencia[0]);
+    if (normalizado) numeros.add(normalizado);
+  }
 }
 
 for (const numero of numeros) console.log(numero);
