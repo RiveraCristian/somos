@@ -176,8 +176,8 @@ export function eventoDeVitrina() {
         preguntaTexto: '¿Por qué sube el precio?',
         preguntaRespuesta:
           'Las primeras 50 entradas valen $15.000, las 150 siguientes $20.000, las 50 que ' +
-          'vienen después $25.000, y de ahí en adelante $30.000. El mismo día del evento ' +
-          'cuestan $30.000 en la puerta. Mientras antes compres, menos pagas.',
+          'vienen después $25.000, y de ahí en adelante $30.000. Mientras antes compres, ' +
+          'menos pagas.',
         preguntaOrden: 3,
         preguntaActiva: true,
         ...auditoria,
@@ -209,7 +209,6 @@ export const ETAPAS_VITRINA: Etapa[] = [
   { etapaId: 2, nombre: 'Segunda tanda', precio: 20000, cupo: 150, orden: 2, enPuerta: false },
   { etapaId: 3, nombre: 'Tercera tanda', precio: 25000, cupo: 50, orden: 3, enPuerta: false },
   { etapaId: 4, nombre: 'Cuarta tanda', precio: 30000, cupo: null, orden: 4, enPuerta: false },
-  { etapaId: 5, nombre: 'En puerta', precio: 30000, cupo: null, orden: 5, enPuerta: true },
 ];
 
 export const ETAPA_VIGENTE_VITRINA: EtapaVigente = {

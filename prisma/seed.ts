@@ -177,15 +177,15 @@ async function main() {
   // 3b. Etapas de venta
   // -------------------------------------------------------------------------
   // El precio no lo pone el tipo de entrada sino la etapa vigente. Sube en
-  // cuatro tandas segun cuanto se lleva vendido, y el dia del evento manda la
-  // de puerta. La ultima tanda va sin cupo a proposito: es la que atiende todo
-  // lo que venga despues de la 250, y sin ella el sitio se queda sin precio.
+  // cuatro tandas segun cuanto se lleva vendido. No hay precio de puerta: el
+  // dia del evento sigue la tanda que toque. La ultima tanda va sin cupo a
+  // proposito: es la que atiende todo lo que venga despues de la 250, y sin
+  // ella el sitio se queda sin precio.
   const etapas = [
     { nombre: 'Primera tanda', precio: 15000, cupo: 50, orden: 1, enPuerta: false },
     { nombre: 'Segunda tanda', precio: 20000, cupo: 150, orden: 2, enPuerta: false },
     { nombre: 'Tercera tanda', precio: 25000, cupo: 50, orden: 3, enPuerta: false },
     { nombre: 'Cuarta tanda', precio: 30000, cupo: null, orden: 4, enPuerta: false },
-    { nombre: 'En puerta', precio: 30000, cupo: null, orden: 5, enPuerta: true },
   ];
 
   for (const e of etapas) {
@@ -276,7 +276,7 @@ async function main() {
       ],
       [
         '¿Cuánto cuesta y por qué sube el precio?',
-        'El precio sube por tandas, según cuántas entradas se hayan vendido: las primeras 50 valen $15.000, las 150 siguientes $20.000, las 50 que vienen después $25.000, y de ahí en adelante $30.000. El mismo día del evento, en la puerta, cuesta $30.000. No hay tope de entradas, pero mientras antes compres, menos pagas.',
+        'El precio sube por tandas, según cuántas entradas se hayan vendido: las primeras 50 valen $15.000, las 150 siguientes $20.000, las 50 que vienen después $25.000, y de ahí en adelante $30.000. No hay tope de entradas, pero mientras antes compres, menos pagas.',
       ],
       [
         '¿Cómo pago?',
@@ -300,7 +300,7 @@ async function main() {
       ],
       [
         '¿Puedo comprar en la puerta?',
-        'Sí, si estás en la lista de invitados. En la puerta la entrada cuesta $30.000. No hay tope de entradas, pero comprar antes sale más barato.',
+        'Sí, si estás en la lista de invitados. En la puerta pagas lo mismo que en el sitio: el precio de la tanda que vaya en ese momento. No hay tope de entradas, pero el precio sube a medida que se venden, así que conviene comprar antes.',
       ],
       [
         '¿Hay edad mínima y derecho de admisión?',
