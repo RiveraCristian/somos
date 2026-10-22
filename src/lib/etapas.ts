@@ -1,5 +1,6 @@
 import { ZONA_HORARIA } from './constantes';
 import { prisma } from './prisma';
+import { reservaOcupaCupo } from './reservas';
 import { ETAPAS_VITRINA, ETAPA_VIGENTE_VITRINA, MODO_VITRINA } from './vitrina';
 
 /**
@@ -53,14 +54,16 @@ export function esDiaDelEvento(fechaEvento: Date | null | undefined, ahora = new
   return diaEnChile(fechaEvento) === diaEnChile(ahora);
 }
 
-/** Cuantas entradas se han tomado en el evento (reservas incluidas). */
+/**
+ * Cuantas entradas se han tomado en el evento.
+ *
+ * Cuenta las reservas sin pagar, porque una reserva ya aparta el cupo: si no
+ * contaran, dos personas podrian llevarse el ultimo lugar barato. Pero solo
+ * mientras siguen vivas — una abandonada deja de empujar el precio.
+ */
 export async function entradasTomadas(eventoId: number): Promise<number> {
   return prisma.asistente.count({
-    where: {
-      asistenteEventoId: eventoId,
-      isDeleted: false,
-      asistenteEstado: { not: 'anulado' },
-    },
+    where: { asistenteEventoId: eventoId, ...reservaOcupaCupo() },
   });
 }
 

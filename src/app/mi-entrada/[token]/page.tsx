@@ -21,9 +21,10 @@ import { conciliarPagosPasarela } from '@/lib/conciliacion';
 import { ETIQUETAS_METODO, type MetodoPago, paletaDeTipo } from '@/lib/constantes';
 import { obtenerAsistentePorToken } from '@/lib/datos';
 import { clavePublicaFintoc } from '@/lib/fintoc';
-import { fechaHora, pesos } from '@/lib/formato';
+import { fechaHora, hora, pesos } from '@/lib/formato';
 import { mensajeDeRechazoMp } from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
+import { VIGENCIA_RESERVA_MS, reservaVencida } from '@/lib/reservas';
 
 import { BotonPagarEnLinea } from './BotonPagarEnLinea';
 import { BotonPagarFlow } from './BotonPagarFlow';
@@ -84,6 +85,15 @@ export default async function PaginaMiEntrada({
   const pasarela = pasarelaActiva();
   const enLinea = pasarela !== null;
   const activa = asistente.asistenteEstado !== 'anulado' && evento.eventoEstado !== 'finalizado';
+
+  // Una reserva sin pagar suelta el cupo a la hora. Se le dice a que hora, y
+  // si ya paso se le dice eso en vez de dejarle un boton que va a fallar: un
+  // boton que rebota parece una falla del sitio, no un plazo cumplido.
+  const caducada = reservaVencida(asistente);
+  const vence =
+    asistente.asistenteEstado === 'pendiente' && !caducada
+      ? hora(new Date(asistente.createdAt.getTime() + VIGENCIA_RESERVA_MS))
+      : null;
 
   // Lo que dice el backend del ultimo intento con Mercado Pago. El aviso de
   // regreso sale de aca y no de los parametros que Mercado Pago pone en la URL:
@@ -266,8 +276,26 @@ export default async function PaginaMiEntrada({
             />
           )}
 
+          {activa && saldo > 0 && caducada && (
+            <section className="tarjeta p-7 sm:p-9">
+              <div className="flex items-center gap-3">
+                <Clock3 size={19} className="text-naranja" />
+                <h2 className="titulo-display text-xl">Tu reserva venció</h2>
+              </div>
+              <p className="mt-3 leading-relaxed text-dim">
+                Las reservas sin pagar duran una hora, así que este cupo volvió a quedar
+                disponible. Puedes comprar de nuevo con el mismo número: tu lugar en la lista de
+                invitados sigue intacto. El precio será el que esté vigente ahora.
+              </p>
+              <Link href="/comprar" className="btn btn-primario mt-6">
+                Comprar de nuevo
+                <ArrowRight size={18} />
+              </Link>
+            </section>
+          )}
+
           {/* --------------------------------------------------- Pago en línea */}
-          {activa && saldo > 0 && enLinea && (
+          {activa && saldo > 0 && enLinea && !caducada && (
             <section className="borde-neon tarjeta p-7 sm:p-9">
               <div className="flex items-center gap-3">
                 <Zap size={19} className="text-cyan" />
@@ -281,6 +309,16 @@ export default async function PaginaMiEntrada({
                     ? 'Paga con tarjeta, débito o transferencia a través de Flow. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'
                     : 'Paga con tarjeta de crédito, débito u otros medios en Mercado Pago. Tu entrada se emite sola, sin que nadie tenga que revisar nada.'}
               </p>
+
+              {vence && (
+                <p className="mb-6 flex items-start gap-2.5 rounded-[12px] border border-[rgba(255,163,26,0.28)] bg-[rgba(255,163,26,0.06)] px-4 py-3.5 text-sm leading-relaxed text-dim">
+                  <Clock3 size={15} className="mt-0.5 shrink-0 text-naranja" />
+                  <span>
+                    Tu reserva vence a las <strong className="text-ink">{vence}</strong>. Después de
+                    esa hora el cupo se libera, pero puedes volver a comprar en el sitio.
+                  </span>
+                </p>
+              )}
 
               {pasarela === 'fintoc' ? (
                 <BotonPagarEnLinea

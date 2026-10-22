@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { reservaOcupaCupo } from './reservas';
 
 /**
  * Lista de invitados.
@@ -81,11 +82,6 @@ export async function contarEntradasDelNumero(
   telefono: string,
 ): Promise<number> {
   return prisma.asistente.count({
-    where: {
-      asistenteEventoId: eventoId,
-      asistenteTelefono: telefono,
-      isDeleted: false,
-      asistenteEstado: { not: 'anulado' },
-    },
+    where: { asistenteEventoId: eventoId, asistenteTelefono: telefono, ...reservaOcupaCupo() },
   });
 }

@@ -8,6 +8,7 @@ import { enviarCorreo, plantillaRegistro } from '@/lib/correo';
 import { etapaVigente } from '@/lib/etapas';
 import { verificarInvitacion } from '@/lib/invitados';
 import { prisma } from '@/lib/prisma';
+import { reservaOcupaCupo } from '@/lib/reservas';
 import { esquemaRegistro, primerError } from '@/lib/validaciones';
 
 export type EstadoCompra = { error?: string; aviso?: string };
@@ -83,8 +84,7 @@ export async function reservarEntrada(
     where: {
       asistenteEventoId: evento.eventoId,
       asistenteCorreo: datos.correo,
-      isDeleted: false,
-      asistenteEstado: { not: 'anulado' },
+      ...reservaOcupaCupo(),
     },
     include: { tipoEntrada: true },
   });
@@ -113,11 +113,7 @@ export async function reservarEntrada(
   // Control de cupo del tipo elegido.
   if (tipo.tipoEntradaCupo !== null) {
     const tomadas = await prisma.asistente.count({
-      where: {
-        asistenteTipoEntradaId: tipo.tipoEntradaId,
-        isDeleted: false,
-        asistenteEstado: { not: 'anulado' },
-      },
+      where: { asistenteTipoEntradaId: tipo.tipoEntradaId, ...reservaOcupaCupo() },
     });
 
     if (tomadas >= tipo.tipoEntradaCupo) {

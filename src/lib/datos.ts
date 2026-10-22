@@ -1,6 +1,7 @@
 import { cache } from 'react';
 
 import { prisma } from './prisma';
+import { reservaOcupaCupo } from './reservas';
 import { CUPOS_VITRINA, MODO_VITRINA, eventoDeVitrina } from './vitrina';
 
 /**
@@ -132,7 +133,7 @@ export async function cuposPorTipo(eventoId: number) {
 
   const agrupado = await prisma.asistente.groupBy({
     by: ['asistenteTipoEntradaId'],
-    where: { asistenteEventoId: eventoId, isDeleted: false, asistenteEstado: { not: 'anulado' } },
+    where: { asistenteEventoId: eventoId, ...reservaOcupaCupo() },
     _count: { _all: true },
   });
 

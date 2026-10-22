@@ -21,6 +21,7 @@ import {
   urlDePreferenciaMp,
 } from '@/lib/mercadopago';
 import { pasarelaActiva } from '@/lib/pasarela';
+import { reservaVencida } from '@/lib/reservas';
 import { prisma } from '@/lib/prisma';
 
 /** Lo que necesita el navegador para abrir el widget de Fintoc en la pagina. */
@@ -56,6 +57,19 @@ async function situacionDeCobro(token: string) {
 
   if (!asistente) return negar('No encontramos tu entrada. Revisa el link que te mandamos.');
   if (asistente.asistenteEstado === 'anulado') return negar('Tu entrada está anulada.');
+
+  // La reserva ya solto su cupo. Cobrarla ahora seria vender una entrada al
+  // precio de hace rato, con ese lugar ya disponible para otra persona.
+  //
+  // Esto frena ABRIR un pago, no confirmarlo: si alguien alcanzo a pagar con
+  // un link que seguia vivo, ese pago se acredita igual y la entrada se emite.
+  // Plata recibida no se rechaza por un plazo nuestro.
+  if (reservaVencida(asistente)) {
+    return negar(
+      'Tu reserva venció: las que no se pagan duran una hora. Vuelve a comprar en el sitio y ' +
+        'te la tomamos de nuevo, al precio que esté vigente.',
+    );
+  }
   if (asistente.evento.eventoEstado === 'finalizado') return negar('Este evento ya terminó.');
 
   const saldo = asistente.asistentePrecio - asistente.asistenteMontoPagado;

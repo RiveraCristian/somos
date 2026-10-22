@@ -202,8 +202,14 @@ export function plantillaRegistro(datos: {
     <h1 style="margin:0 0 14px;font-size:28px;line-height:1.15;">Falta un paso para ${datos.evento}</h1>
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#B7C0D6;">
       ${datos.nombre}, te reservamos una entrada <strong style="color:#EAF0FF;">${datos.tipoEntrada}</strong>
-      de <strong style="color:#EAF0FF;">${pesos(datos.precio)}</strong>. Entra a tu página y págala con tu banco, o transfiere y sube el
-      comprobante para que emitamos tu QR.
+      de <strong style="color:#EAF0FF;">${pesos(datos.precio)}</strong>. Entra a tu página y págala para que
+      emitamos tu QR.
+    </p>
+    <p style="margin:0 0 24px;padding:14px 16px;border-radius:12px;background:rgba(255,163,26,0.10);
+              border:1px solid rgba(255,163,26,0.28);font-size:14px;line-height:1.6;color:#EAF0FF;">
+      Tienes <strong>una hora</strong> para pagarla. Pasado ese rato la reserva se libera y el cupo
+      queda disponible para otra persona — pero puedes volver a comprar en el sitio, al precio que
+      esté vigente en ese momento.
     </p>
     <a href="${datos.url}"
        style="display:block;text-align:center;text-decoration:none;padding:16px;border-radius:999px;

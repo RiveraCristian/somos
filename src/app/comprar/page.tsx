@@ -91,6 +91,8 @@ export default async function PaginaComprar({
               <p className="mt-1">
                 Verificamos tu teléfono contra la lista de invitados. Cada número da
                 derecho a una entrada, a nombre de una persona y con su propio correo.
+                Tienes una hora para pagarla: después el cupo se libera y queda
+                disponible para otra persona.
                 {etapa?.restantes ? (
                   <>
                     {' '}
