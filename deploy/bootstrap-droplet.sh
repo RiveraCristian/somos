@@ -239,6 +239,12 @@ if [ ! -f "$DIR_APP/.env" ]; then
   # queda la IP y hay que corregirlo a mano cuando llegue el dominio.
   URL_PUBLICA="${DOMINIO:+https://$DOMINIO}"
   URL_PUBLICA="${URL_PUBLICA:-http://$IP_PUBLICA}"
+  # El remitente sale del dominio del sitio y no de un valor escrito a mano.
+  # Escrito a mano ya se desalineo una vez: quedo "@somos.cl" mientras el sitio
+  # era somosfiesta.cl, y Resend rechaza con 403 todo envio desde un dominio
+  # que no sea el verificado. El sintoma es pesimo: el cobro se acredita, la
+  # entrada se emite, y el correo no llega nunca sin que nadie se entere.
+  REMITENTE="SOMOS <entradas@${DOMINIO:-tudominio.cl}>"
   cat > "$DIR_APP/.env" <<ENVEOF
 # SOMOS — entorno de produccion. Generado por bootstrap-droplet.sh.
 # Este archivo es la unica copia de estos secretos. No se versiona.
@@ -264,10 +270,12 @@ MERCADOPAGO_ACCESS_TOKEN=""
 MERCADOPAGO_PUBLIC_KEY=""
 MERCADOPAGO_WEBHOOK_SECRET=""
 
-# Correo apagado hasta tener el dominio verificado en Resend.
+# Correo apagado hasta que el dominio este verificado en Resend. Encenderlo
+# antes no sirve: Resend rechaza el envio y el comprador se queda sin entrada
+# en el correo.
 EMAIL_ENABLED="false"
 RESEND_API_KEY=""
-EMAIL_FROM="SOMOS <entradas@somos.cl>"
+EMAIL_FROM="$REMITENTE"
 
 ADMIN_SEED_CORREO="admin@somos.cl"
 ADMIN_SEED_NOMBRE="Administrador SOMOS"
