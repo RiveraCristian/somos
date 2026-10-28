@@ -78,6 +78,8 @@ export const esquemaEvento = z.object({
   coordenadas: textoLimpio(80).optional().or(z.literal('')),
   capacidad: z.coerce.number().int().min(0).max(100_000).optional(),
   estado: z.enum(['borrador', 'publicado', 'cerrado', 'finalizado']),
+  // Una casilla sin marcar no se envia: ausente significa venta pausada.
+  ventasAbiertas: z.coerce.boolean(),
   instagram: textoLimpio(120).optional().or(z.literal('')),
   cuentaNombre: textoLimpio(200).optional().or(z.literal('')),
   cuentaRut: textoLimpio(20).optional().or(z.literal('')),

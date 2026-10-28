@@ -4,6 +4,7 @@ import { ArrowLeft, Lock } from 'lucide-react';
 
 import { Encabezado } from '@/components/publico/Encabezado';
 import { PiePagina } from '@/components/publico/PiePagina';
+import { VENTA_PAUSADA_TEXTO, VENTA_PAUSADA_TITULO } from '@/lib/constantes';
 import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
 import { etapaVigente } from '@/lib/etapas';
 import { pasarelaActiva } from '@/lib/pasarela';
@@ -33,6 +34,36 @@ export default async function PaginaComprar({
           <h1 className="titulo-display text-3xl">No hay entradas a la venta</h1>
           <p className="mt-3 text-dim">Vuelve a intentarlo más tarde.</p>
         </main>
+      </>
+    );
+  }
+
+  if (!evento.eventoVentasAbiertas) {
+    return (
+      <>
+        <Encabezado />
+        <main className="contenedor-angosto py-24">
+          <div className="tarjeta p-8 text-center sm:p-12">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(255,163,26,0.10)]">
+              <Lock size={22} className="text-naranja" />
+            </div>
+            <h1 className="titulo-display mt-5 text-3xl">{VENTA_PAUSADA_TITULO}</h1>
+            <p className="mx-auto mt-4 max-w-md leading-relaxed text-dim">{VENTA_PAUSADA_TEXTO}</p>
+            <Link href="/" className="btn btn-borde mt-8">
+              <ArrowLeft size={17} />
+              Volver al inicio
+            </Link>
+          </div>
+
+          <p className="mt-8 text-center text-sm text-faint">
+            ¿Ya compraste tu entrada?{' '}
+            <Link href="/mi-entrada" className="text-cyan hover:underline">
+              Recupérala acá
+            </Link>
+            .
+          </p>
+        </main>
+        <PiePagina />
       </>
     );
   }

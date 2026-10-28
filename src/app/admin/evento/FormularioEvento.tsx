@@ -19,6 +19,7 @@ export type DatosEvento = {
   coordenadas: string;
   capacidad: string;
   estado: string;
+  ventasAbiertas: boolean;
   instagram: string;
   cuentaNombre: string;
   cuentaRut: string;
@@ -76,6 +77,25 @@ export function FormularioEvento({ datos }: { datos: DatosEvento }) {
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="campo">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="ventasAbiertas"
+              defaultChecked={datos.ventasAbiertas}
+              className="mt-0.5 h-4 w-4 shrink-0"
+            />
+            <span className="text-sm leading-relaxed">
+              <span className="campo-label">Venta de entradas abierta</span>
+              <span className="mt-1 block text-dim">
+                Desmarcado, el sitio avisa que las entradas no están habilitadas y nadie puede
+                comprar. Quien ya compró conserva su entrada, su QR y su correo, y en la puerta
+                se la escanean igual.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="campo">

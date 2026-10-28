@@ -125,6 +125,8 @@ model Evento {
   eventoCapacidad    Int?      @map("evento_capacidad")
   /// borrador | publicado | cerrado | finalizado
   eventoEstado       String    @default("borrador") @map("evento_estado") @db.VarChar(30)
+  /// FALSE pausa la venta. No afecta a las entradas ya vendidas.
+  eventoVentasAbiertas Boolean @default(true) @map("evento_ventas_abiertas")
   eventoInstagram    String?   @map("evento_instagram") @db.VarChar(120)
   eventoWhatsapp     String?   @map("evento_whatsapp") @db.VarChar(60)
 

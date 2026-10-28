@@ -26,7 +26,7 @@ import { OndaAnimada } from '@/components/publico/OndaAnimada';
 import { EmbedsInstagram } from '@/components/publico/EmbedsInstagram';
 import { PiePagina } from '@/components/publico/PiePagina';
 import { Logo } from '@/components/marca/Logo';
-import { paletaDeTipo } from '@/lib/constantes';
+import { VENTA_PAUSADA_TEXTO, paletaDeTipo } from '@/lib/constantes';
 import { cuposPorTipo, obtenerEventoPublico } from '@/lib/datos';
 import { etapaVigente, listarEtapas } from '@/lib/etapas';
 import { pasarelaActiva, type Pasarela } from '@/lib/pasarela';
@@ -135,6 +135,11 @@ export default async function PaginaInicio() {
     etapaVigente(evento.eventoId, evento.eventoFechaInicio),
   ]);
 
+  // Con la venta pausada el sitio sigue contando el evento entero —fecha,
+  // precios, line-up— y solo deja de invitar a comprar. Esconderlo todo seria
+  // apagar la pagina, y lo que se quiso fue cerrar la caja.
+  const vendiendo = evento.eventoVentasAbiertas;
+
   const fechaTexto = fechaLarga(evento.eventoFechaInicio);
   const horaTexto = hora(evento.eventoFechaInicio);
 
@@ -190,10 +195,17 @@ export default async function PaginaInicio() {
           </div>
 
           <div className="animar-aparecer mt-11 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/comprar" className="btn btn-primario">
-              Comprar entrada
-              <ArrowRight size={18} />
-            </Link>
+            {vendiendo ? (
+              <Link href="/comprar" className="btn btn-primario">
+                Comprar entrada
+                <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <span className="flex items-center gap-2.5 rounded-full border border-[rgba(255,163,26,0.28)] bg-[rgba(255,163,26,0.08)] px-5 py-3 text-sm text-ink">
+                <Lock size={16} className="shrink-0 text-naranja" />
+                {VENTA_PAUSADA_TEXTO}
+              </span>
+            )}
             <Link href="#entradas" className="btn btn-borde">
               Ver precios
             </Link>
@@ -505,12 +517,20 @@ export default async function PaginaInicio() {
               <span className="texto-neon">Nos vemos en la pista</span>
             </h2>
             <p className="mx-auto mt-4 max-w-md leading-relaxed text-dim">
-              Compra tu entrada y guarda tu QR. Una entrada, una persona.
+              {vendiendo
+                ? 'Compra tu entrada y guarda tu QR. Una entrada, una persona.'
+                : VENTA_PAUSADA_TEXTO}
             </p>
-            <Link href="/comprar" className="btn btn-primario mt-8">
-              Comprar entrada
-              <ArrowRight size={18} />
-            </Link>
+            {vendiendo ? (
+              <Link href="/comprar" className="btn btn-primario mt-8">
+                Comprar entrada
+                <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <Link href="/mi-entrada" className="btn btn-borde mt-8">
+                Ya tengo mi entrada
+              </Link>
+            )}
           </div>
         </div>
         </Aparecer>

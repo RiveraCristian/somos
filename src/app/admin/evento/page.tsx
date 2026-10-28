@@ -77,6 +77,7 @@ export default async function PaginaEvento() {
                 : '',
             capacidad: String(evento.eventoCapacidad ?? ''),
             estado: evento.eventoEstado,
+            ventasAbiertas: evento.eventoVentasAbiertas,
             instagram: evento.eventoInstagram ?? '',
             cuentaNombre: evento.eventoCuentaNombre ?? '',
             cuentaRut: evento.eventoCuentaRut ?? '',

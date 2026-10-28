@@ -54,6 +54,7 @@ export function eventoDeVitrina() {
     eventoRegion: 'Maule',
     eventoCapacidad: null,
     eventoEstado: 'publicado',
+    eventoVentasAbiertas: true,
     eventoInstagram: 'somos.vol3',
     eventoWhatsapp: null,
     eventoCuentaNombre: null,

@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 
 import { generarToken } from '@/lib/codigos';
-import { USUARIO_SISTEMA_ID } from '@/lib/constantes';
+import { USUARIO_SISTEMA_ID, VENTA_PAUSADA_TEXTO } from '@/lib/constantes';
 import { enviarCorreo, plantillaRegistro } from '@/lib/correo';
 import { etapaVigente } from '@/lib/etapas';
 import { verificarInvitacion } from '@/lib/invitados';
@@ -49,6 +49,13 @@ export async function reservarEntrada(
 
   if (!evento) {
     return { error: 'Las entradas todavía no están a la venta.' };
+  }
+
+  // La pausa se revisa aca y no solo en la pantalla. Ocultar el formulario no
+  // cierra nada: este formulario se envia por POST y cualquiera puede repetir
+  // el envio con el navegador cerrado de por medio.
+  if (!evento.eventoVentasAbiertas) {
+    return { error: VENTA_PAUSADA_TEXTO };
   }
 
   const tipo = await prisma.tipoEntrada.findFirst({

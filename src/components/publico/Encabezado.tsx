@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Logo } from '@/components/marca/Logo';
+import { obtenerEventoPublico } from '@/lib/datos';
 
 const ENLACES = [
   { href: '/#entradas', texto: 'Entradas' },
@@ -9,7 +10,12 @@ const ENLACES = [
   { href: '/#preguntas', texto: 'Preguntas' },
 ];
 
-export function Encabezado() {
+export async function Encabezado() {
+  // La consulta esta memorizada con `cache()`, asi que en una pagina que ya
+  // pidio el evento esto no cuesta una consulta mas.
+  const evento = await obtenerEventoPublico();
+  const vendiendo = evento?.eventoVentasAbiertas ?? false;
+
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-void/70 backdrop-blur-xl">
       <div className="contenedor flex h-16 items-center justify-between gap-6">
@@ -35,9 +41,11 @@ export function Encabezado() {
           <Link href="/mi-entrada" className="btn btn-fantasma text-sm max-sm:hidden">
             Mi entrada
           </Link>
-          <Link href="/comprar" className="btn btn-primario btn-sm">
-            Comprar
-          </Link>
+          {vendiendo && (
+            <Link href="/comprar" className="btn btn-primario btn-sm">
+              Comprar
+            </Link>
+          )}
         </div>
       </div>
     </header>

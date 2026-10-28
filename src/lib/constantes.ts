@@ -4,6 +4,20 @@
  * 0001_init: si se agrega uno aca, hay que agregarlo tambien alla.
  */
 
+/**
+ * Lo que ve la gente cuando la venta esta pausada.
+ *
+ * Vive en un solo lugar porque aparece en tres pantallas y tambien en el
+ * servidor que rechaza la reserva. Si cada una dijera algo distinto pareceria
+ * que el sitio esta fallando, en vez de que la venta esta cerrada a proposito.
+ *
+ * No dice "agotadas": agotado es que no quedan, y aca si quedan. Dice lo que
+ * de verdad pasa, que es que todavia no se abren.
+ */
+export const VENTA_PAUSADA_TITULO = 'Entradas no habilitadas';
+export const VENTA_PAUSADA_TEXTO =
+  'Por el momento las entradas no están habilitadas. Próximamente tendremos más información.';
+
 /** Usuario tecnico autor de todo lo que nace en el sitio publico. */
 export const USUARIO_SISTEMA_ID = 1;
 
