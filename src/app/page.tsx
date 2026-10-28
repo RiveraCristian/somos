@@ -297,14 +297,23 @@ export default async function PaginaInicio() {
                 )}
 
                 <div className="perforado relative mt-auto pt-5">
-                  <Link
-                    href={agotado ? '/comprar' : `/comprar?tipo=${tipo.tipoEntradaSlug}`}
-                    aria-disabled={agotado}
-                    className={`btn btn-borde w-full ${agotado ? 'pointer-events-none opacity-45' : ''}`}
-                  >
-                    {agotado ? 'Sin stock' : 'Comprar'}
-                    {!agotado && <ArrowRight size={16} />}
-                  </Link>
+                  {/* Con la venta pausada no se ofrece un boton que lleva a un
+                      aviso: invitar a algo que no se puede hacer se lee como
+                      una falla del sitio. Se dice el estado y se acabo. */}
+                  {!vendiendo ? (
+                    <span className="btn btn-borde pointer-events-none w-full opacity-45">
+                      No habilitadas
+                    </span>
+                  ) : (
+                    <Link
+                      href={agotado ? '/comprar' : `/comprar?tipo=${tipo.tipoEntradaSlug}`}
+                      aria-disabled={agotado}
+                      className={`btn btn-borde w-full ${agotado ? 'pointer-events-none opacity-45' : ''}`}
+                    >
+                      {agotado ? 'Sin stock' : 'Comprar'}
+                      {!agotado && <ArrowRight size={16} />}
+                    </Link>
+                  )}
 
                   {restantes !== null && !agotado && (
                     <p className="dato mt-3 text-center text-xs text-faint">
